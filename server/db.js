@@ -65,7 +65,7 @@ export function createStore(dataDir, seedCsv) {
           displayName: profile.displayName || profile.nickname || email,
           vortexId: profile.id || null,
           passwordHash: null,
-          role: users.length === 0 ? "admin" : "member",
+          role: "member",
           createdAt: new Date().toISOString(),
         };
         users.push(user);
@@ -77,7 +77,7 @@ export function createStore(dataDir, seedCsv) {
       writeJson(usersPath, users);
       return user;
     },
-    createLocalUser({ email, passwordHash, displayName }) {
+    createLocalUser({ email, passwordHash, displayName, role = "member" }) {
       if (this.findUserByEmail(email)) throw new Error("Bu e-posta zaten kayıtlı.");
       const user = {
         id: crypto.randomUUID(),
@@ -85,12 +85,15 @@ export function createStore(dataDir, seedCsv) {
         displayName: displayName || email,
         vortexId: null,
         passwordHash,
-        role: users.length === 0 ? "admin" : "member",
+        role,
         createdAt: new Date().toISOString(),
       };
       users.push(user);
       writeJson(usersPath, users);
       return user;
+    },
+    hasAdmins() {
+      return users.some((user) => user.role === "admin");
     },
   };
 }

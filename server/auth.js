@@ -41,13 +41,17 @@ export function createAuth({ store, vortex, jwtSecret }) {
       return { token: sign(user), user: publicUser(user), via: "vortex" };
     }
 
+    if (!remote.skipped && !remote.unavailable) {
+      throw Object.assign(new Error("Vortex hesabı oluşturulamadı. E-posta bilgilerini kontrol edin."), { status: 400 });
+    }
+
     const passwordHash = await bcrypt.hash(password, 12);
     const user = store.createLocalUser({
       email,
       passwordHash,
       displayName: input.displayName || input.nickname || `${input.firstName || ""} ${input.lastName || ""}`.trim(),
     });
-    return { token: sign(user), user: publicUser(user), via: remote.skipped ? "local" : "local-fallback" };
+    return { token: sign(user), user: publicUser(user), via: "local" };
   }
 
   async function login(input) {
@@ -66,13 +70,14 @@ export function createAuth({ store, vortex, jwtSecret }) {
     }
 
     const user = store.findUserByEmail(email);
-    if (!user || !user.passwordHash || !(await bcrypt.compare(password, user.passwordHash))) {
-      const message = remote.skipped
-        ? "E-posta veya parola hatalı."
-        : "Vortex hesabı doğrulanamadı. E-posta ve parolayı kontrol edin.";
-      throw Object.assign(new Error(message), { status: 401 });
+    if (user?.passwordHash && await bcrypt.compare(password, user.passwordHash)) {
+      return { token: sign(user), user: publicUser(user), via: "local" };
     }
-    return { token: sign(user), user: publicUser(user), via: "local" };
+
+    if (!remote.skipped && !remote.unavailable) {
+      throw Object.assign(new Error("Vortex hesabı doğrulanamadı. E-posta ve parolayı kontrol edin."), { status: 401 });
+    }
+    throw Object.assign(new Error("E-posta veya parola hatalı."), { status: 401 });
   }
 
   function requireUser(request, response, next) {

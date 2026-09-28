@@ -1,26 +1,39 @@
 const REGISTER_BODY_KEYS = ["email", "password", "firstName", "lastName", "nickname", "displayName", "birthDate", "phone"];
 
-export function createVortexClient({ baseUrl, registerPath, loginPath, mePath }) {
+export function createVortexClient({ baseUrl, registerPath, loginPath, mePath, timeoutMs = 8000 }) {
   const enabled = Boolean(baseUrl);
 
   async function request(path, { method = "GET", token, body } = {}) {
-    const url = new URL(path, baseUrl);
-    const headers = { Accept: "application/json" };
-    if (body) headers["Content-Type"] = "application/json";
-    if (token) headers.Authorization = `Bearer ${token}`;
-    const response = await fetch(url, {
-      method,
-      headers,
-      body: body ? JSON.stringify(body) : undefined,
-    });
-    const text = await response.text();
-    let payload = null;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
     try {
-      payload = text ? JSON.parse(text) : null;
-    } catch {
-      payload = { raw: text };
+      const url = new URL(path, baseUrl);
+      const headers = { Accept: "application/json" };
+      if (body) headers["Content-Type"] = "application/json";
+      if (token) headers.Authorization = `Bearer ${token}`;
+      const response = await fetch(url, {
+        method,
+        headers,
+        body: body ? JSON.stringify(body) : undefined,
+        signal: controller.signal,
+      });
+      const text = await response.text();
+      let payload = null;
+      try {
+        payload = text ? JSON.parse(text) : null;
+      } catch {
+        payload = { raw: text };
+      }
+      return { ok: response.ok, status: response.status, payload, unavailable: response.status >= 500 };
+    } catch (error) {
+      return {
+        ok: false,
+        unavailable: true,
+        error: error.name === "AbortError" ? "Vortex yanıt vermedi." : "Vortex bağlantısı kurulamadı.",
+      };
+    } finally {
+      clearTimeout(timeout);
     }
-    return { ok: response.ok, status: response.status, payload };
   }
 
   return {
