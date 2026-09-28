@@ -3,9 +3,11 @@ import { fileURLToPath } from "node:url";
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import multer from "multer";
 import { createStore } from "./db.js";
 import { createVortexClient } from "./vortex.js";
 import { createAuth } from "./auth.js";
+import { parsePlateUpload } from "./import.js";
 
 dotenv.config();
 
@@ -25,6 +27,18 @@ if (process.env.NODE_ENV === "production" && corsOrigins.length === 0) {
 }
 
 const store = createStore(dataDir, seedCsv);
+const plateUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024, files: 1 },
+  fileFilter(_request, file, callback) {
+    if (![".csv", ".xlsx"].includes(path.extname(file.originalname).toLowerCase())) {
+      const error = new Error("Yalnızca .csv veya .xlsx dosyası yükleyebilirsiniz.");
+      error.status = 415;
+      return callback(error);
+    }
+    callback(null, true);
+  },
+});
 const vortex = createVortexClient({
   baseUrl: process.env.VORTEX_SERVER_URL || "",
   registerPath: process.env.VORTEX_AUTH_REGISTER || "/api/auth/register",
@@ -94,9 +108,32 @@ app.post("/api/plates", auth.requireAdmin, (request, response) => {
   }
 });
 
+app.post("/api/plates/import", auth.requireAdmin, plateUpload.single("file"), async (request, response, next) => {
+  if (!request.file) return response.status(400).json({ error: "Yüklenecek CSV veya Excel dosyası seçin." });
+  try {
+    const rows = await parsePlateUpload(request.file);
+    const result = store.addPlates(rows);
+    response.status(201).json({ ...result, total: rows.length });
+  } catch (error) {
+    response.status(400).json({ error: error.message || "Dosya okunamadı." });
+  }
+});
+
 app.delete("/api/plates/:id", auth.requireAdmin, (request, response) => {
   const removed = store.removePlate(request.params.id);
   response.status(removed ? 204 : 404).end();
+});
+
+app.use((error, _request, response, next) => {
+  if (error instanceof multer.MulterError) {
+    const status = error.code === "LIMIT_FILE_SIZE" ? 413 : 400;
+    const message = error.code === "LIMIT_FILE_SIZE"
+      ? "Dosya boyutu en fazla 5 MB olabilir."
+      : "Yalnızca bir CSV veya Excel dosyası yükleyebilirsiniz.";
+    return response.status(status).json({ error: message });
+  }
+  if (error.status && error.status < 500) return response.status(error.status).json({ error: error.message });
+  next(error);
 });
 
 const dist = path.join(root, "dist");

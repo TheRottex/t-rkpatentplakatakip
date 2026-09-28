@@ -34,10 +34,46 @@ export function createStore(dataDir, seedCsv) {
         daire: String(row.daire || "").trim(),
         createdAt: new Date().toISOString(),
       };
-      if (!norm(item.plaka)) throw new Error("Plaka boş veya geçersiz.");
+      if (!norm(item.plaka) || !item.blok || !item.daire) {
+        throw new Error("Plaka, blok ve daire alanlarının tümü gereklidir.");
+      }
+      if (plates.some((plate) => norm(plate.plaka) === norm(item.plaka))) {
+        throw new Error("Bu plaka zaten kayıtlı.");
+      }
       plates.push(item);
       writeJson(platesPath, plates);
       return item;
+    },
+    addPlates(rows) {
+      const known = new Set(plates.map((plate) => norm(plate.plaka)));
+      const additions = [];
+      let duplicates = 0;
+
+      for (const row of rows) {
+        const item = {
+          id: crypto.randomUUID(),
+          plaka: String(row.plaka || "").trim(),
+          blok: String(row.blok || "").trim(),
+          daire: String(row.daire || "").trim(),
+          createdAt: new Date().toISOString(),
+        };
+        const key = norm(item.plaka);
+        if (!key || !item.blok || !item.daire) {
+          throw new Error("Plaka, blok ve daire alanlarının tümü gereklidir.");
+        }
+        if (known.has(key)) {
+          duplicates += 1;
+          continue;
+        }
+        known.add(key);
+        additions.push(item);
+      }
+
+      if (additions.length) {
+        plates.push(...additions);
+        writeJson(platesPath, plates);
+      }
+      return { added: additions.length, duplicates };
     },
     removePlate(id) {
       const before = plates.length;
