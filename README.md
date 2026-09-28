@@ -1,7 +1,7 @@
 # TPPlaka
 
 <p align="center">
-	<img src="client/public/turkpatenetanalogo.jpg" alt="Türk Patent ve Marka Kurumu logosu" width="360" />
+	<img src="client/public/turkpatenetanalogo.jpg" alt="Türk Patent ve Marka Kurumu logosu" width="160" />
 </p>
 
 <p align="center">
@@ -138,4 +138,4 @@ Ana ekrana eklemek uygulamayı çevrimdışı yapmaz. Arama, giriş ve filo işl
 
 ## Proje ve kurum bilgisi
 
-Ana uygulama logosu [`client/public/turkpatenetanalogo.jpg`](client/public/turkpatenetanalogo.jpg) dosyasıdır. Kare ana ekran/PWA simgesi [`client/public/icon.svg`](client/public/icon.svg) olarak ayrı tutulur; yatay kurum logosu kare simgeye kırpılmaz.
+Ana uygulama, tarayıcı sekmesi ve Android/iPhone ana ekran logosu [`client/public/turkpatenetanalogo.jpg`](client/public/turkpatenetanalogo.jpg) dosyasıdır. Uygulamada özgün kare görsel kullanılır; kırpma veya esnetme yapılmaz.
