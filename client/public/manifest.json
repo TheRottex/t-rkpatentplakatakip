@@ -1,0 +1,14 @@
+{
+  "name": "BlokTakip",
+  "short_name": "BlokTakip",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0C0B09",
+  "theme_color": "#0C0B09",
+  "description": "Site araç plakalarını sorgulayın, filo kayıtlarını yönetin.",
+  "lang": "tr",
+  "categories": ["utilities"],
+  "icons": [
+    { "src": "/icon.svg", "sizes": "512x512", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
