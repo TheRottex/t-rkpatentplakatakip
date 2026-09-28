@@ -1,0 +1,27 @@
+{
+  "name": "bloktakip",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Site ve blok araç plaka takip uygulaması — iOS Health arayüz dili, Vortex hesapları, sunucu tarafı filo.",
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently -k \"node server/index.js\" \"vite --host\"",
+    "build": "vite build",
+    "start": "NODE_ENV=production node server/index.js",
+    "start:win": "set NODE_ENV=production&& node server/index.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.2"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "concurrently": "^9.1.2",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "vite": "^5.4.11"
+  }
+}
