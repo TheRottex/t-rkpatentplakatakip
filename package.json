@@ -1,14 +1,19 @@
 {
-  "name": "bloktakip",
+  "name": "tpplaka",
   "version": "1.0.0",
   "private": true,
-  "description": "Site ve blok araç plaka takip uygulaması — iOS Health arayüz dili, Vortex hesapları, sunucu tarafı filo.",
+  "description": "TPPlaka: yetkili kullanıcılar için site ve blok araç plaka takibi.",
+  "engines": {
+    "node": ">=18.20 <19"
+  },
   "type": "module",
   "scripts": {
     "dev": "concurrently -k \"node server/index.js\" \"vite --host\"",
     "build": "vite build",
     "start": "NODE_ENV=production node server/index.js",
-    "start:win": "set NODE_ENV=production&& node server/index.js"
+    "start:win": "set NODE_ENV=production&& node server/index.js",
+    "test": "node --test test/*.test.js",
+    "bootstrap-admin": "node server/bootstrap-admin.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
