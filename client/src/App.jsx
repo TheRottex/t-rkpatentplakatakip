@@ -41,6 +41,10 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    if (!user) {
+      setResult(null);
+      return;
+    }
     const handle = setTimeout(async () => {
       if (!query.trim()) {
         setResult(null);
@@ -53,7 +57,7 @@ export default function App() {
       }
     }, 90);
     return () => clearTimeout(handle);
-  }, [query]);
+  }, [query, user]);
 
   useEffect(() => {
     if (tab === "filo" && user) {
@@ -99,16 +103,16 @@ export default function App() {
 
   if (!onboarded) {
     const slides = [
-      { title: "Plakayı bul, konumu gör", copy: "Plakayı yaz. Kayıt bulunduğunda blok ve daire bilgisi hemen görünür; benzer plakalar da listelenir." },
+      { title: "Plakayı bul, konumu gör", copy: "Yetkili hesabınla giriş yapıp plakayı sorgula. Eşleşmede blok ve daire görünür; benzer kayıtlar da listelenir." },
       { title: "Filo kayıtları tek yerde", copy: "Plaka kayıtları uygulama sunucusunda tutulur. Filo listesini görüntülemek için hesabınla giriş yap." },
-      { title: "Hesap ve yetkiler", copy: "Vortex bağlantısı varsa onunla, yoksa yerel hesapla giriş yapılır. İlk oluşturulan hesap yönetici olur." },
+      { title: "Hesap ve yetkiler", copy: "Vortex bağlantısı varsa onunla, yoksa yerel hesapla giriş yapılır. Yönetici yetkisi sunucuda ayrıca tanımlanır." },
     ];
     const slide = slides[page];
     return (
       <main className="phone">
         <section className="onboard">
           <div className="pulse-ring" />
-          <p className="eyebrow">BlokTakip</p>
+          <p className="eyebrow">TPPlaka</p>
           <h1>{slide.title}</h1>
           <p className="lede">{slide.copy}</p>
           <div className="dots">
@@ -150,6 +154,10 @@ export default function App() {
 
       {tab === "sorgula" && (
         <section className="stack">
+          {!user ? (
+            <Empty title="Plaka sorgusu için giriş yap" copy="Plaka, blok ve daire bilgileri yalnızca yetkili hesaplar için gösterilir." action="Hesaba geç" onAction={() => setTab("hesap")} />
+          ) : (
+            <>
           <div className="ring-wrap">
             <svg viewBox="0 0 120 120" className="ring">
               <circle cx="60" cy="60" r="52" />
@@ -215,13 +223,15 @@ export default function App() {
               ))}
             </ul>
           ) : null}
+            </>
+          )}
         </section>
       )}
 
       {tab === "filo" && (
         <section className="stack">
           {!user ? (
-            <Empty title="Filoyu görmek için gir" copy="Vortex e-posta hesabın hem kimliğini hem yetkini taşır." action="Hesaba geç" onAction={() => setTab("hesap")} />
+            <Empty title="Filoyu görmek için giriş yap" copy="Filo kayıtları yalnızca yetkili hesaplara gösterilir." action="Hesaba geç" onAction={() => setTab("hesap")} />
           ) : (
             <>
               {user.role === "admin" && (
@@ -290,7 +300,7 @@ export default function App() {
               <input type="email" required placeholder="E-posta" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
               <input type="password" required minLength={8} placeholder="Parola (en az 8)" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
               <button className="primary" type="submit">{authMode === "register" ? "Hesap aç" : "Giriş yap"}</button>
-              <p className="hint">Vortex bağlantısı yapılandırılmışsa hesap orada doğrulanır; değilse yerel hesap kullanılır. İlk oluşturulan hesap yönetici yetkisi alır.</p>
+              <p className="hint">Vortex bağlantısı yapılandırılmışsa hesap orada doğrulanır; bağlantı kapalıysa yerel hesap kullanılır. Yeni hesaplar normal kullanıcı yetkisindedir; yönetici yetkisi sunucudan verilir.</p>
             </form>
           )}
         </section>
