@@ -6,7 +6,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { createStore } from "../server/db.js";
-import { parsePlateUpload } from "../server/import.js";
+import { createPlateTemplate, parsePlateUpload } from "../server/import.js";
 import { createVortexClient } from "../server/vortex.js";
 
 test("ordinary users are members, never automatic administrators", () => {
@@ -63,14 +63,14 @@ test("CSV upload reads headered, semicolon-delimited rows", async () => {
     originalname: "plates.csv",
     buffer: Buffer.from("plaka;blok;daire\n06ABC06;C2/47;2\n", "utf8"),
   });
-  assert.deepEqual(rows, [{ plaka: "06ABC06", blok: "C2/47", daire: "2" }]);
+  assert.deepEqual(rows, [{ isim: "", plaka: "06ABC06", blok: "C2/47", daire: "2" }]);
 });
 
 test("bulk plate import skips existing plates without duplicating them", () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "tpplaka-"));
   try {
     const store = createStore(dir);
-    store.addPlate({ plaka: "06ABC06", blok: "C2/47", daire: "2" });
+    store.addPlate({ isim: "Örnek Sürücü", plaka: "06ABC06", blok: "C2/47", daire: "2" });
     const result = store.addPlates([
       { plaka: "06 ABC 06", blok: "C2/47", daire: "2" },
       { plaka: "34XYZ34", blok: "A2", daire: "12" },
@@ -89,5 +89,86 @@ test("XLSX upload maps Turkish column headings", async () => {
   sheet.addRow(["34XYZ34", "A2", 12]);
   const buffer = Buffer.from(await workbook.xlsx.writeBuffer());
   const rows = await parsePlateUpload({ originalname: "plates.xlsx", buffer });
-  assert.deepEqual(rows, [{ plaka: "34XYZ34", blok: "A2", daire: "12" }]);
+  assert.deepEqual(rows, [{ isim: "", plaka: "34XYZ34", blok: "A2", daire: "12" }]);
+});
+
+test("source workbook imports driver name and plate without locations", async () => {
+  const workbook = new ExcelJS.Workbook();
+  const sheet = workbook.addWorksheet("Aboneler");
+  sheet.addRow(["SÜRÜCÜ AD SOYAD", "PLAKA"]);
+  sheet.addRow(["Örnek Sürücü", "06ABC06"]);
+  const buffer = Buffer.from(await workbook.xlsx.writeBuffer());
+  const rows = await parsePlateUpload({ originalname: "aboneler.xlsx", buffer });
+  assert.deepEqual(rows, [{ isim: "Örnek Sürücü", plaka: "06ABC06", blok: "", daire: "" }]);
+});
+
+test("Excel template has name and plate columns plus optional locations", async () => {
+  const buffer = await createPlateTemplate();
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(buffer);
+  assert.deepEqual(workbook.worksheets[0].getRow(1).values.slice(1), [
+    "SÜRÜCÜ AD SOYAD",
+    "PLAKA",
+    "BLOK",
+    "DAİRE",
+  ]);
+});
+
+test("upload rejects a row with only one optional location field", async () => {
+  const workbook = new ExcelJS.Workbook();
+  const sheet = workbook.addWorksheet("Plakalar");
+  sheet.addRow(["SÜRÜCÜ AD SOYAD", "PLAKA", "BLOK", "DAİRE"]);
+  sheet.addRow(["Örnek Sürücü", "06ABC06", "A1", ""]);
+  const buffer = Buffer.from(await workbook.xlsx.writeBuffer());
+  await assert.rejects(
+    parsePlateUpload({ originalname: "plates.xlsx", buffer }),
+    /isim ve plaka gerekli; blok\/daire varsa ikisini de doldurun/i,
+  );
+});
+
+test("named spreadsheet schema rejects a missing driver name", async () => {
+  const workbook = new ExcelJS.Workbook();
+  const sheet = workbook.addWorksheet("Plakalar");
+  sheet.addRow(["SÜRÜCÜ AD SOYAD", "PLAKA", "BLOK", "DAİRE"]);
+  sheet.getCell("A2").value = " ";
+  sheet.getCell("B2").value = "06ABC06";
+  sheet.getCell("C2").value = "A1";
+  sheet.getCell("D2").value = "2";
+  const buffer = Buffer.from(await workbook.xlsx.writeBuffer());
+  await assert.rejects(
+    parsePlateUpload({ originalname: "plates.xlsx", buffer }),
+    /isim ve plaka gerekli; blok\/daire varsa ikisini de doldurun/i,
+  );
+});
+
+test("named plates with no location are returned without block or unit values", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "tpplaka-"));
+  try {
+    const store = createStore(dir);
+    store.addPlates([{ isim: "Örnek Sürücü", plaka: "06ABC06", blok: "", daire: "" }]);
+    const record = store.search("06ABC06").exact[0];
+    assert.equal(record.isim, "Örnek Sürücü");
+    assert.equal(record.blok, "");
+    assert.equal(record.daire, "");
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("manual plate entry still requires a name, block, and unit", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "tpplaka-"));
+  try {
+    const store = createStore(dir);
+    assert.throws(
+      () => store.addPlate({ plaka: "06ABC06", blok: "A1", daire: "2" }),
+      /İsim, plaka, blok ve daire alanlarının tümü gereklidir/,
+    );
+    assert.throws(
+      () => store.addPlate({ isim: "Örnek Sürücü", plaka: "06ABC06", blok: "A1", daire: "" }),
+      /İsim, plaka, blok ve daire alanlarının tümü gereklidir/,
+    );
+    assert.equal(store.listPlates().length, 0);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
 });
