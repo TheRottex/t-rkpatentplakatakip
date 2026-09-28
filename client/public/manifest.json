@@ -1,11 +1,11 @@
 {
-  "name": "BlokTakip",
-  "short_name": "BlokTakip",
+  "name": "TPPlaka",
+  "short_name": "TPPlaka",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0C0B09",
   "theme_color": "#0C0B09",
-  "description": "Site araç plakalarını sorgulayın, filo kayıtlarını yönetin.",
+  "description": "Yetkili kullanıcılar için plaka sorgulama ve filo takibi.",
   "lang": "tr",
   "categories": ["utilities"],
   "icons": [

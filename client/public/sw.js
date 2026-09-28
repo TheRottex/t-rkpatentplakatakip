@@ -1,4 +1,4 @@
-const CACHE = "bloktakip-v1";
+const CACHE = "tpplaka-v2";
 const ASSETS = ["/", "/manifest.json", "/icon.svg"];
 
 self.addEventListener("install", (event) => {
