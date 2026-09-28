@@ -1,5 +1,5 @@
 const CACHE = "tpplaka-v2";
-const ASSETS = ["/", "/manifest.json", "/icon.svg"];
+const ASSETS = ["/", "/manifest.json", "/turkpatenetanalogo.jpg"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(ASSETS)).then(() => self.skipWaiting()));
