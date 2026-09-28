@@ -1,10 +1,12 @@
 import assert from "node:assert/strict";
+import ExcelJS from "exceljs";
 import { createServer } from "node:http";
 import { test } from "node:test";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { createStore } from "../server/db.js";
+import { parsePlateUpload } from "../server/import.js";
 import { createVortexClient } from "../server/vortex.js";
 
 test("ordinary users are members, never automatic administrators", () => {
@@ -54,4 +56,38 @@ test("administrator role is assigned only when explicitly requested", () => {
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }
+});
+
+test("CSV upload reads headered, semicolon-delimited rows", async () => {
+  const rows = await parsePlateUpload({
+    originalname: "plates.csv",
+    buffer: Buffer.from("plaka;blok;daire\n06ABC06;C2/47;2\n", "utf8"),
+  });
+  assert.deepEqual(rows, [{ plaka: "06ABC06", blok: "C2/47", daire: "2" }]);
+});
+
+test("bulk plate import skips existing plates without duplicating them", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "tpplaka-"));
+  try {
+    const store = createStore(dir);
+    store.addPlate({ plaka: "06ABC06", blok: "C2/47", daire: "2" });
+    const result = store.addPlates([
+      { plaka: "06 ABC 06", blok: "C2/47", daire: "2" },
+      { plaka: "34XYZ34", blok: "A2", daire: "12" },
+    ]);
+    assert.deepEqual(result, { added: 1, duplicates: 1 });
+    assert.equal(store.listPlates().length, 2);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("XLSX upload maps Turkish column headings", async () => {
+  const workbook = new ExcelJS.Workbook();
+  const sheet = workbook.addWorksheet("Plakalar");
+  sheet.addRow(["Plaka", "Blok", "Daire"]);
+  sheet.addRow(["34XYZ34", "A2", 12]);
+  const buffer = Buffer.from(await workbook.xlsx.writeBuffer());
+  const rows = await parsePlateUpload({ originalname: "plates.xlsx", buffer });
+  assert.deepEqual(rows, [{ plaka: "34XYZ34", blok: "A2", daire: "12" }]);
 });
