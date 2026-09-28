@@ -30,7 +30,7 @@ Plaka araması uygulama sunucusuna bağlanır; internet bağlantısı gerekir. U
 
 - **Hesap** sekmesinden e-posta ve en az 8 karakterli parola ile kayıt olun veya giriş yapın.
 - Sunucu Vortex'e bağlıysa giriş Vortex üzerinden doğrulanır; değilse yerel hesap kullanılır.
-- Kurulumdaki ilk oluşturulan hesap yönetici yetkisi alır. Yöneticiler **Filo** sekmesinden kayıt ekleyip silebilir.
+- Yeni hesaplar normal kullanıcıdır. Yönetici hesabı yalnızca sunucu yöneticisi tarafından bootstrap komutuyla oluşturulur. Yöneticiler **Filo** sekmesinden kayıt ekleyip silebilir.
 - Diğer hesaplar filo listesini görüntüleyebilir; kayıt değiştiremez.
 
 ## Yardım
