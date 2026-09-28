@@ -9,6 +9,6 @@
   "lang": "tr",
   "categories": ["utilities"],
   "icons": [
-    { "src": "/icon.svg", "sizes": "512x512", "type": "image/svg+xml", "purpose": "any" }
+    { "src": "/turkpatenetanalogo.jpg", "sizes": "844x844", "type": "image/jpeg", "purpose": "any" }
   ]
 }
