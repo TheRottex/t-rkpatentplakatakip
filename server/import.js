@@ -4,10 +4,38 @@ import { norm } from "./db.js";
 
 const MAX_ROWS = 10_000;
 const COLUMN_NAMES = {
+  isim: new Set(["surucuadsoyad", "adsoyad", "isim", "name", "drivername"]),
   plaka: new Set(["plaka", "plate", "aracplakasi", "vehicleplate"]),
   blok: new Set(["blok", "block"]),
-  daire: new Set(["daire", "unit", "flat", "daireNo", "unitNo"]),
+  daire: new Set(["daire", "unit", "flat", "daireno", "unitno"]),
 };
+
+export async function createPlateTemplate() {
+  const workbook = new ExcelJS.Workbook();
+  workbook.creator = "TPPlaka";
+  const sheet = workbook.addWorksheet("Plakalar");
+  sheet.columns = [
+    { header: "SÜRÜCÜ AD SOYAD", key: "isim", width: 30 },
+    { header: "PLAKA", key: "plaka", width: 18 },
+    { header: "BLOK", key: "blok", width: 18 },
+    { header: "DAİRE", key: "daire", width: 14 },
+  ];
+  sheet.getRow(1).font = { bold: true, color: { argb: "FFFFFFFF" } };
+  sheet.getRow(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF1C3F8A" } };
+  sheet.views = [{ state: "frozen", ySplit: 1 }];
+
+  const instructions = workbook.addWorksheet("Kullanım");
+  instructions.addRows([
+    ["Zorunlu sütunlar", "SÜRÜCÜ AD SOYAD ve PLAKA"],
+    ["İsteğe bağlı sütunlar", "BLOK ve DAİRE (ikisini birlikte doldurun)"],
+    ["Konum bilgisi yoksa", "BLOK ve DAİRE hücrelerini boş bırakın; aramada isim gösterilir."],
+    ["Aktarım sınırı", "En fazla 10.000 kayıt ve 5 MB."],
+  ]);
+  instructions.getColumn(1).width = 26;
+  instructions.getColumn(2).width = 72;
+
+  return Buffer.from(await workbook.xlsx.writeBuffer());
+}
 
 export async function parsePlateUpload(file) {
   const extension = String(file.originalname || "").split(".").pop().toLowerCase();
@@ -61,25 +89,33 @@ function normalizeRows(rows) {
     key,
     first.findIndex((header) => [...aliases].some((alias) => headerKey(alias) === header)),
   ]));
-  const hasHeader = Object.values(columns).some((index) => index >= 0);
-  if (hasHeader && Object.values(columns).some((index) => index < 0)) {
-    throw new Error("Başlık satırında plaka, blok ve daire sütunlarının tümü bulunmalıdır.");
+  const hasRecognizedHeaders = Object.values(columns).some((index) => index >= 0);
+  const hasHeader = columns.plaka >= 0 && hasRecognizedHeaders;
+  if (hasRecognizedHeaders && !hasHeader) {
+    throw new Error("Başlık satırında PLAKA sütunu bulunmalıdır.");
   }
 
   const dataRows = hasHeader
-    ? rows.slice(1).map((row) => [row[columns.plaka], row[columns.blok], row[columns.daire]])
-    : rows;
+    ? rows.slice(1).map((row) => ({
+      isim: columns.isim < 0 ? "" : row[columns.isim],
+      plaka: row[columns.plaka],
+      blok: columns.blok < 0 ? "" : row[columns.blok],
+      daire: columns.daire < 0 ? "" : row[columns.daire],
+    }))
+    : rows.map(([plaka, blok, daire]) => ({ isim: "", plaka, blok, daire }));
+  const requiresName = hasHeader && columns.isim >= 0;
   if (dataRows.length > MAX_ROWS) throw new Error(`Dosya en fazla ${MAX_ROWS} kayıt içerebilir.`);
 
   const records = [];
   for (let index = 0; index < dataRows.length; index += 1) {
-    const values = dataRows[index].map(cellText);
-    if (values.every((value) => !value)) continue;
-    const [plaka, blok, daire] = values;
-    if (!norm(plaka) || !blok || !daire) {
-      throw new Error(`${index + (hasHeader ? 2 : 1)}. satırda plaka, blok veya daire eksik.`);
+    const row = Object.fromEntries(Object.entries(dataRows[index]).map(([key, value]) => [key, cellText(value)]));
+    if (Object.values(row).every((value) => !value)) continue;
+    const hasBlock = Boolean(row.blok);
+    const hasUnit = Boolean(row.daire);
+    if (!norm(row.plaka) || (requiresName && !row.isim) || hasBlock !== hasUnit || (!row.isim && !hasBlock)) {
+      throw new Error(`${index + (hasHeader ? 2 : 1)}. satırda isim ve plaka gerekli; blok/daire varsa ikisini de doldurun.`);
     }
-    records.push({ plaka, blok, daire });
+    records.push(row);
   }
   if (!records.length) throw new Error("Dosyada aktarılabilecek geçerli kayıt bulunamadı.");
   return records;

@@ -7,7 +7,7 @@ import multer from "multer";
 import { createStore } from "./db.js";
 import { createVortexClient } from "./vortex.js";
 import { createAuth } from "./auth.js";
-import { parsePlateUpload } from "./import.js";
+import { createPlateTemplate, parsePlateUpload } from "./import.js";
 
 dotenv.config();
 
@@ -98,6 +98,16 @@ app.get("/api/plates/search", auth.requireUser, (request, response) => {
 
 app.get("/api/plates", auth.requireUser, (_request, response) => {
   response.json({ items: store.listPlates(), stats: store.stats() });
+});
+
+app.get("/api/plates/template", auth.requireAdmin, async (_request, response, next) => {
+  try {
+    response.type("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    response.attachment("tpplaka-plaka-sablonu.xlsx");
+    response.send(await createPlateTemplate());
+  } catch (error) {
+    next(error);
+  }
 });
 
 app.post("/api/plates", auth.requireAdmin, (request, response) => {
