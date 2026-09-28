@@ -19,7 +19,7 @@
 ## Neler yapar?
 
 - Giriş yapan yetkili kullanıcılar tam ve benzer plaka eşleşmelerini arayabilir.
-- Eşleşme bulunduğunda blok ve daire bilgisi gösterilir.
+- Eşleşmede sürücü adı ve plaka gösterilir; kayıtlıysa blok ve daire de gösterilir.
 - Yönetici plaka kaydını elle ekleyebilir veya `.xlsx`/`.csv` dosyasından toplu aktarabilir; normal üyeler filo listesini görüntüler.
 - PWA olarak Android ve iPhone ana ekranına eklenebilir. Bu, mağazadan indirilen yerel uygulama değil, sunucuya bağlanan bir web uygulamasıdır.
 
@@ -37,7 +37,7 @@ flowchart LR
 
 - `client/`: React arayüzü; geliştirme sırasında Vite tarafından sunulur.
 - `server/index.js`: Express API'si; güvenlik başlıkları, izinli origin, istek sınırları ve yetki kontrolü uygular. Üretimde derlenmiş arayüzü de sunar.
-- `server/db.js`: CSV'deki plaka, blok ve daire satırlarını ilk çalıştırmada `DATA_DIR` içindeki JSON dosyalarına aktarır. Sonraki değişiklikler JSON'a yazılır; CSV otomatik olarak yeniden içe aktarılmaz.
+- `server/db.js`: Başlangıç CSV'sini ve yüklenen isim/plaka kayıtlarını ilk çalıştırmada veya aktarımda `DATA_DIR` içindeki JSON dosyalarına yazar. Sonraki değişiklikler JSON'a yazılır; başlangıç CSV'si otomatik yeniden içe aktarılmaz.
 - `server/auth.js` ve `server/vortex.js`: Yerel parola/JWT akışı ile timeout korumalı Vortex hesap bağlantısı.
 - `POST /api/plates/import`: Yönetici yetkisiyle 5 MB'a ve 10.000 satıra kadar Excel/CSV aktarımı; yinelenen plakalar atlanıp sonuçta sayılır.
 - `server/bootstrap-admin.js`: İlk yönetici hesabını sunucu ortamında bir kez oluşturur. Uygulama içinden kayıt olan kullanıcılar `member` olur.
@@ -89,15 +89,19 @@ Komut mevcut yöneticiyi gördüğünde çalışmayı reddeder. Üretimde zaten 
 
 ## Plaka kaydı ve dosyadan aktarım
 
-Yönetici olarak **Filo** sekmesini açın. **Yeni plaka ekle** formuyla tek kayıt girebilir veya **Excel veya CSV aktar** alanından `.xlsx`/`.csv` dosyası seçebilirsiniz. Excel dosyasında ilk çalışma sayfası ve `plaka`, `blok`, `daire` başlıkları kullanılır. CSV'de aynı başlıklar veya başlıksız `plaka;blok;daire` satırları kabul edilir:
+Yönetici olarak **Filo** sekmesini açın. Tek kayıt girmek için **Yeni plaka ekle** formunda sürücü adı, plaka, blok ve daire alanlarını doldurun. Toplu aktarımda **Excel şablonunu indir** düğmesiyle dosyayı alın, satırları doldurun ve aynı ekrandan yükleyin.
+
+Şablonun ilk sayfasındaki `SÜRÜCÜ AD SOYAD` ve `PLAKA` sütunları zorunludur. `BLOK` ve `DAİRE` sütunları isteğe bağlıdır; konum bilgisi giriliyorsa ikisi birlikte girilmelidir. Elinizdeki `PTS_Abone_Listesi_Excel.xlsx` biçimindeki `SÜRÜCÜ AD SOYAD` ve `PLAKA` sütunları da doğrudan tanınır. Bu dosya özel kişi/plaka verisi içerdiğinden depoya eklenmemeli; yönetici tarafından uygulama içinden seçilmelidir.
+
+Blok ve daire bulunmayan kayıtlarda arama sonucunda sürücü adı ve plaka gösterilir; boş konum alanları kullanıcıya gösterilmez. Aktarım filo/plaka kayıtları oluşturur, uygulama giriş hesabı oluşturmaz. CSV için başlıklı isim/plaka satırları veya eski başlıksız `plaka;blok;daire` biçimi de kabul edilir:
 
 ```csv
-plaka;blok;daire
-06ABC06;C15;3
-34XYZ34;A2;12
+SÜRÜCÜ AD SOYAD;PLAKA;BLOK;DAİRE
+Örnek Sürücü;06ABC06;;
+Site Sakini;34XYZ34;A2;12
 ```
 
-Dosya en fazla 5 MB ve 10.000 kayıt olabilir. Aynı plaka daha önce varsa yeniden eklenmez; aktarım sonucunda eklenen ve yinelenen kayıt sayısı gösterilir. Elle ekleme ve dosya aktarımı admin yetkisi gerektirir.
+Dosya en fazla 5 MB ve 10.000 kayıt olabilir. Daha önce bulunan plaka tekrar eklenmez; aktarım sonunda eklenen ve yinelenen kayıt sayısı gösterilir. Elle ekleme, şablon indirme ve dosya aktarımı admin yetkisi gerektirir.
 
 ### Sunucuya yayınlama
 
@@ -146,7 +150,7 @@ Ana ekrana eklemek uygulamayı çevrimdışı yapmaz. Arama, giriş ve filo işl
 
 - Yönetici hesabı sadece `npm run bootstrap-admin` ile sunucudan oluşturulur; kayıt formu yönetici yetkisi vermez.
 - `JWT_SECRET` için uzun, rastgele ve gizli bir değer kullanın. `.env` dosyasını veya sırları GitHub'a yüklemeyin.
-- Plaka, blok ve daire eşleştirmeleri hassas kişisel/site verisi içerebilir. Yalnızca işleme yetkiniz olan veriyi kullanın; erişimi sınırlayın, yedekleri koruyun ve saklama politikasını belirleyin.
+- Sürücü adı, plaka, blok ve daire verileri kişisel/site bilgisi içerebilir. Yalnızca işleme yetkiniz olan veriyi kullanın; gerçek Excel/CSV dosyalarını GitHub'a eklemeyin, erişimi sınırlayın ve yedekleri koruyun.
 - Mevcut CSV ilk başlangıç verisidir. JSON dosyaları oluşturulduktan sonra CSV düzenlemek kayıtları güncellemez.
 
 ## Proje ve kurum bilgisi

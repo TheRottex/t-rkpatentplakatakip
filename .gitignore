@@ -4,6 +4,8 @@ data/*.sqlite
 data/*.json
 data/*.csv
 plaka-sorgu-main/data.csv
+*.xlsx
+*.xls
 .env
 .env.local
 *.log
