@@ -36,8 +36,8 @@ export function createStore(dataDir, seedCsv) {
         daire: String(row.daire || "").trim(),
         createdAt: new Date().toISOString(),
       };
-      if (!item.isim || !norm(item.plaka) || !item.blok || !item.daire) {
-        throw new Error("İsim, plaka, blok ve daire alanlarının tümü gereklidir.");
+      if (!item.isim || !norm(item.plaka) || Boolean(item.blok) !== Boolean(item.daire)) {
+        throw new Error("İsim ve plaka gereklidir; blok veya daire varsa ikisini de doldurun.");
       }
       if (plates.some((plate) => norm(plate.plaka) === norm(item.plaka))) {
         throw new Error("Bu plaka zaten kayıtlı.");

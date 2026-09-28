@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { api, getToken, setSession } from "./api.js";
 
+const SHOW_LOCATION_FIELDS = 0;
 const ONBOARD_KEY = "bloktakip_onboarded";
 
 function haptic(ms = 12) {
@@ -285,10 +286,12 @@ export default function App() {
                     <input id="new-driver" name="isim" required placeholder="Ad Soyad" value={add.isim} onChange={(e) => setAdd({ ...add, isim: e.target.value })} />
                     <label htmlFor="new-plate">Plaka</label>
                     <input id="new-plate" name="plaka" required placeholder="06 ABC 06" value={add.plaka} onChange={(e) => setAdd({ ...add, plaka: e.target.value })} />
+                    {SHOW_LOCATION_FIELDS === 1 ? (<>
                     <label htmlFor="new-block">Blok</label>
-                    <input id="new-block" name="blok" required placeholder="C2/47" value={add.blok} onChange={(e) => setAdd({ ...add, blok: e.target.value })} />
+                    <input id="new-block" name="blok" placeholder="C2/47" value={add.blok} onChange={(e) => setAdd({ ...add, blok: e.target.value })} />
                     <label htmlFor="new-unit">Daire</label>
-                    <input id="new-unit" name="daire" required placeholder="2" value={add.daire} onChange={(e) => setAdd({ ...add, daire: e.target.value })} />
+                    <input id="new-unit" name="daire" placeholder="2" value={add.daire} onChange={(e) => setAdd({ ...add, daire: e.target.value })} />
+                    </>) : null}
                     <button className="primary" type="submit" disabled={savingPlate}>{savingPlate ? "Ekleniyor..." : "Plakayı ekle"}</button>
                   </form>
                   <form className="card-form" onSubmit={importPlates}>

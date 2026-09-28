@@ -1,5 +1,4 @@
 node_modules/
-dist/
 data/*.sqlite
 data/*.json
 data/*.csv
