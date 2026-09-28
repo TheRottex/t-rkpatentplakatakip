@@ -36,6 +36,20 @@ body {
   font-size: 11px;
   color: var(--gold);
 }
+.brand-logo {
+  display: block;
+  width: min(210px, 58vw);
+  max-height: 48px;
+  margin-bottom: 12px;
+  object-fit: contain;
+  object-position: left center;
+  background: #fff;
+}
+.onboarding-logo {
+  width: min(260px, 72vw);
+  max-height: 60px;
+  margin-bottom: 22px;
+}
 h1 { margin: 6px 0 0; font-size: 34px; letter-spacing: -0.04em; }
 .lede, .hint { color: var(--mute); line-height: 1.55; }
 .top { display: flex; justify-content: space-between; align-items: flex-end; }

@@ -112,7 +112,7 @@ export default function App() {
       <main className="phone">
         <section className="onboard">
           <div className="pulse-ring" />
-          <p className="eyebrow">TPPlaka</p>
+          <img className="brand-logo onboarding-logo" src="/turkpatenetanalogo.jpg" alt="Türk Patent ve Marka Kurumu" />
           <h1>{slide.title}</h1>
           <p className="lede">{slide.copy}</p>
           <div className="dots">
@@ -141,6 +141,7 @@ export default function App() {
     <main className="phone">
       <header className="top">
         <div>
+          <img className="brand-logo" src="/turkpatenetanalogo.jpg" alt="Türk Patent ve Marka Kurumu" />
           <p className="eyebrow">{new Date().toLocaleDateString("tr-TR", { weekday: "long", day: "numeric", month: "long" })}</p>
           <h1>{tab === "sorgula" ? "Plaka" : tab === "filo" ? "Filo" : "Hesap"}</h1>
         </div>
