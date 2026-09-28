@@ -20,7 +20,7 @@
 
 - Giriş yapan yetkili kullanıcılar tam ve benzer plaka eşleşmelerini arayabilir.
 - Eşleşme bulunduğunda blok ve daire bilgisi gösterilir.
-- Filo listesi giriş gerektirir; yalnızca yönetici kayıt ekleyip silebilir.
+- Yönetici plaka kaydını elle ekleyebilir veya `.xlsx`/`.csv` dosyasından toplu aktarabilir; normal üyeler filo listesini görüntüler.
 - PWA olarak Android ve iPhone ana ekranına eklenebilir. Bu, mağazadan indirilen yerel uygulama değil, sunucuya bağlanan bir web uygulamasıdır.
 
 ## Nasıl çalışır?
@@ -39,6 +39,7 @@ flowchart LR
 - `server/index.js`: Express API'si; güvenlik başlıkları, izinli origin, istek sınırları ve yetki kontrolü uygular. Üretimde derlenmiş arayüzü de sunar.
 - `server/db.js`: CSV'deki plaka, blok ve daire satırlarını ilk çalıştırmada `DATA_DIR` içindeki JSON dosyalarına aktarır. Sonraki değişiklikler JSON'a yazılır; CSV otomatik olarak yeniden içe aktarılmaz.
 - `server/auth.js` ve `server/vortex.js`: Yerel parola/JWT akışı ile timeout korumalı Vortex hesap bağlantısı.
+- `POST /api/plates/import`: Yönetici yetkisiyle 5 MB'a ve 10.000 satıra kadar Excel/CSV aktarımı; yinelenen plakalar atlanıp sonuçta sayılır.
 - `server/bootstrap-admin.js`: İlk yönetici hesabını sunucu ortamında bir kez oluşturur. Uygulama içinden kayıt olan kullanıcılar `member` olur.
 - `client/public/sw.js`: Arayüz kaynaklarını önbelleğe alır. Sorgular, hesap ve filo işlemleri için sunucu bağlantısı gerekir.
 
@@ -85,6 +86,18 @@ Remove-Item Env:TPPLAKA_ADMIN_EMAIL, Env:TPPLAKA_ADMIN_PASSWORD
 ```
 
 Komut mevcut yöneticiyi gördüğünde çalışmayı reddeder. Üretimde zaten yönetici hesabı varsa bootstrap komutunu yeniden çalıştırmayın.
+
+## Plaka kaydı ve dosyadan aktarım
+
+Yönetici olarak **Filo** sekmesini açın. **Yeni plaka ekle** formuyla tek kayıt girebilir veya **Excel veya CSV aktar** alanından `.xlsx`/`.csv` dosyası seçebilirsiniz. Excel dosyasında ilk çalışma sayfası ve `plaka`, `blok`, `daire` başlıkları kullanılır. CSV'de aynı başlıklar veya başlıksız `plaka;blok;daire` satırları kabul edilir:
+
+```csv
+plaka;blok;daire
+06ABC06;C15;3
+34XYZ34;A2;12
+```
+
+Dosya en fazla 5 MB ve 10.000 kayıt olabilir. Aynı plaka daha önce varsa yeniden eklenmez; aktarım sonucunda eklenen ve yinelenen kayıt sayısı gösterilir. Elle ekleme ve dosya aktarımı admin yetkisi gerektirir.
 
 ### Sunucuya yayınlama
 
