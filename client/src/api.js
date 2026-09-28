@@ -29,5 +29,10 @@ export const api = {
   register: (body) => request("/api/auth/register", { method: "POST", body }),
   plates: () => request("/api/plates"),
   addPlate: (body) => request("/api/plates", { method: "POST", body }),
+  importPlates: (file) => {
+    const body = new FormData();
+    body.append("file", file);
+    return request("/api/plates/import", { method: "POST", body });
+  },
   removePlate: (id) => request(`/api/plates/${id}`, { method: "DELETE" }),
 };

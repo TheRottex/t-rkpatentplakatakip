@@ -34,6 +34,8 @@ export default function App() {
   const [form, setForm] = useState({ email: "", password: "", firstName: "", lastName: "", nickname: "" });
   const [notice, setNotice] = useState("");
   const [add, setAdd] = useState({ plaka: "", blok: "", daire: "" });
+  const [savingPlate, setSavingPlate] = useState(false);
+  const [uploadingPlates, setUploadingPlates] = useState(false);
 
   useEffect(() => {
     api.health().then(setHealth).catch(() => setHealth(null));
@@ -90,14 +92,44 @@ export default function App() {
 
   async function addPlate(event) {
     event.preventDefault();
+    setSavingPlate(true);
     try {
       await api.addPlate(add);
       setAdd({ plaka: "", blok: "", daire: "" });
-      const payload = await api.plates();
+      const [payload, status] = await Promise.all([api.plates(), api.health()]);
       setFleet(payload.items || []);
+      setHealth(status);
+      setNotice("Plaka filoya eklendi.");
       haptic(16);
     } catch (error) {
       setNotice(error.message);
+    } finally {
+      setSavingPlate(false);
+    }
+  }
+
+  async function importPlates(event) {
+    event.preventDefault();
+    const uploadForm = event.currentTarget;
+    const file = uploadForm.elements.namedItem("file")?.files?.[0];
+    if (!file) {
+      setNotice("Önce bir Excel veya CSV dosyası seçin.");
+      return;
+    }
+
+    setUploadingPlates(true);
+    try {
+      const result = await api.importPlates(file);
+      const [payload, status] = await Promise.all([api.plates(), api.health()]);
+      setFleet(payload.items || []);
+      setHealth(status);
+      uploadForm.reset();
+      setNotice(`${result.added} plaka eklendi; ${result.duplicates} tekrar atlandı.`);
+      haptic(20);
+    } catch (error) {
+      setNotice(error.message);
+    } finally {
+      setUploadingPlates(false);
     }
   }
 
@@ -235,13 +267,28 @@ export default function App() {
             <Empty title="Filoyu görmek için giriş yap" copy="Filo kayıtları yalnızca yetkili hesaplara gösterilir." action="Hesaba geç" onAction={() => setTab("hesap")} />
           ) : (
             <>
-              {user.role === "admin" && (
-                <form className="card-form" onSubmit={addPlate}>
-                  <input placeholder="Plaka" value={add.plaka} onChange={(e) => setAdd({ ...add, plaka: e.target.value })} />
-                  <input placeholder="Blok" value={add.blok} onChange={(e) => setAdd({ ...add, blok: e.target.value })} />
-                  <input placeholder="Daire" value={add.daire} onChange={(e) => setAdd({ ...add, daire: e.target.value })} />
-                  <button className="primary" type="submit">Filoya ekle</button>
-                </form>
+              {user.role === "admin" ? (
+                <div className="admin-tools">
+                  <form className="card-form" onSubmit={addPlate}>
+                    <h2>Yeni plaka ekle</h2>
+                    <label htmlFor="new-plate">Plaka</label>
+                    <input id="new-plate" name="plaka" required placeholder="06 ABC 06" value={add.plaka} onChange={(e) => setAdd({ ...add, plaka: e.target.value })} />
+                    <label htmlFor="new-block">Blok</label>
+                    <input id="new-block" name="blok" required placeholder="C2/47" value={add.blok} onChange={(e) => setAdd({ ...add, blok: e.target.value })} />
+                    <label htmlFor="new-unit">Daire</label>
+                    <input id="new-unit" name="daire" required placeholder="2" value={add.daire} onChange={(e) => setAdd({ ...add, daire: e.target.value })} />
+                    <button className="primary" type="submit" disabled={savingPlate}>{savingPlate ? "Ekleniyor..." : "Plakayı ekle"}</button>
+                  </form>
+                  <form className="card-form" onSubmit={importPlates}>
+                    <h2>Excel veya CSV aktar</h2>
+                    <label htmlFor="plate-file">Plaka listesi</label>
+                    <input id="plate-file" name="file" type="file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required />
+                    <p className="hint">İlk sayfada `plaka`, `blok`, `daire` sütunları bulunsun. CSV için aynı sırada başlıksız satırlar da kabul edilir. En fazla 5 MB ve 10.000 satır.</p>
+                    <button className="primary" type="submit" disabled={uploadingPlates}>{uploadingPlates ? "Aktarılıyor..." : "Dosyayı aktar"}</button>
+                  </form>
+                </div>
+              ) : (
+                <p className="hint">Yeni plaka ekleme ve dosyadan toplu aktarım yönetici yetkisi gerektirir. Yetki için site yöneticisine başvurun.</p>
               )}
               <ul className="list">
                 {fleet.map((row) => (
