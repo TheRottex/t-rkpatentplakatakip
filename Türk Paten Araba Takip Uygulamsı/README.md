@@ -1,6 +1,6 @@
 # TPPlaka Kullanım Kılavuzu
 
-TPPlaka, yetkili kullanıcıların araç plakalarını arayıp kayıtlı blok ve daire bilgisini görmesini sağlar. Sorgu ve filo için giriş gerekir.
+TPPlaka, yetkili kullanıcıların araç plakasını ve kayıtlı sürücü adını aramasını sağlar. Blok ve daire bilgisi varsa ayrıca gösterilir. Sorgu ve filo için giriş gerekir.
 
 ## Android'e yükleme
 
@@ -22,7 +22,7 @@ Bu yöntem uygulamayı App Store veya Google Play'den indirmez; güvenli web uyg
 
 1. **Hesap** sekmesinden giriş yapın veya hesap açın.
 2. **Sorgula** sekmesini açıp plakayı yazın; boşluk veya tire kullanmanız gerekmez.
-3. Eşleşme varsa blok ve daire bilgisi görünür. Benzer sonuçlardan birine dokunarak doğru plakayı seçebilirsiniz.
+3. Eşleşme varsa sürücü adı görünür. Kayıtta blok ve daire varsa onlar da gösterilir; bu bilgiler kaynak dosyada yoksa ekranda yer almaz. Benzer sonuçlardan birine dokunarak doğru plakayı seçebilirsiniz.
 
 Plaka araması uygulama sunucusuna bağlanır; internet bağlantısı gerekir. Uygulama simgesinin telefonda bulunması veriyi çevrimdışı kullanılabilir yapmaz.
 
@@ -36,10 +36,13 @@ Plaka araması uygulama sunucusuna bağlanır; internet bağlantısı gerekir. U
 ## Yönetici: plaka ekleme ve dosya aktarma
 
 1. **Filo** sekmesini açın.
-2. Tek kayıt için **Yeni plaka ekle** bölümünde plaka, blok ve daireyi girip **Plakayı ekle**'ye dokunun.
-3. Toplu kayıt için **Excel veya CSV aktar** bölümünden `.xlsx` veya `.csv` dosyası seçin ve **Dosyayı aktar**'a dokunun.
-4. Excel dosyasının ilk sayfasında `plaka`, `blok`, `daire` sütun başlıkları bulunmalıdır. CSV, başlık satırıyla veya `plaka;blok;daire` sütun sırasıyla hazırlanabilir.
-5. Dosya 5 MB'ı ve 10.000 satırı aşmamalıdır. Var olan plakalar yinelenen sayılır ve tekrar eklenmez; sonuç bildirimi kaç kaydın eklendiğini gösterir.
+2. Tek kayıt için **Yeni plaka ekle** bölümünde sürücü adı, plaka, blok ve daireyi doldurup **Plakayı ekle**'ye dokunun.
+3. Toplu kayıt için önce **Excel şablonunu indir** düğmesine dokunun. İlk sayfada `SÜRÜCÜ AD SOYAD` ve `PLAKA` sütunları zorunludur; `BLOK` ve `DAİRE` isteğe bağlıdır ve birlikte doldurulmalıdır.
+4. Elinizdeki `PTS_Abone_Listesi_Excel.xlsx` dosyasını da doğrudan seçebilirsiniz; `SÜRÜCÜ AD SOYAD` ve `PLAKA` sütunları tanınır. Blok/daire yoksa isim ve plaka kaydı oluşturulur.
+5. **Excel veya CSV aktar** alanından doldurduğunuz `.xlsx` veya `.csv` dosyasını seçin ve **Dosyayı aktar**'a dokunun. CSV'de başlıklı isim/plaka veya eski başlıksız `plaka;blok;daire` satırları kabul edilir.
+6. Dosya 5 MB'ı ve 10.000 satırı aşmamalıdır. Var olan plakalar yinelenen sayılır ve tekrar eklenmez; sonuç bildirimi eklenen ve yinelenen sayısını gösterir.
+
+Dosya aktarımı filo kaydı ekler; uygulama giriş hesabı oluşturmaz. Yalnızca yönetici bu ekleme ve aktarım işlemlerini yapabilir.
 
 Bu yönetim alanları yalnızca `admin` hesabında görünür. Normal kullanıcı hesabınız varsa site yöneticisinden admin yetkisi isteyin.
 
