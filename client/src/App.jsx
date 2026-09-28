@@ -33,7 +33,7 @@ export default function App() {
   const [authMode, setAuthMode] = useState("login");
   const [form, setForm] = useState({ email: "", password: "", firstName: "", lastName: "", nickname: "" });
   const [notice, setNotice] = useState("");
-  const [add, setAdd] = useState({ plaka: "", blok: "", daire: "" });
+  const [add, setAdd] = useState({ isim: "", plaka: "", blok: "", daire: "" });
   const [savingPlate, setSavingPlate] = useState(false);
   const [uploadingPlates, setUploadingPlates] = useState(false);
 
@@ -95,7 +95,7 @@ export default function App() {
     setSavingPlate(true);
     try {
       await api.addPlate(add);
-      setAdd({ plaka: "", blok: "", daire: "" });
+      setAdd({ isim: "", plaka: "", blok: "", daire: "" });
       const [payload, status] = await Promise.all([api.plates(), api.health()]);
       setFleet(payload.items || []);
       setHealth(status);
@@ -105,6 +105,15 @@ export default function App() {
       setNotice(error.message);
     } finally {
       setSavingPlate(false);
+    }
+  }
+
+  async function downloadTemplate() {
+    try {
+      await api.downloadPlateTemplate();
+      setNotice("Excel şablonu indirildi.");
+    } catch (error) {
+      setNotice(error.message);
     }
   }
 
@@ -135,7 +144,7 @@ export default function App() {
 
   if (!onboarded) {
     const slides = [
-      { title: "Plakayı bul, konumu gör", copy: "Yetkili hesabınla giriş yapıp plakayı sorgula. Eşleşmede blok ve daire görünür; benzer kayıtlar da listelenir." },
+      { title: "Plakayı ve sürücüyü bul", copy: "Yetkili hesabınla giriş yapıp plakayı sorgula. Sürücü adı görünür; dosyada varsa blok ve daire de gösterilir." },
       { title: "Filo kayıtları tek yerde", copy: "Plaka kayıtları uygulama sunucusunda tutulur. Filo listesini görüntülemek için hesabınla giriş yap." },
       { title: "Hesap ve yetkiler", copy: "Vortex bağlantısı varsa onunla, yoksa yerel hesapla giriş yapılır. Yönetici yetkisi sunucuda ayrıca tanımlanır." },
     ];
@@ -188,7 +197,7 @@ export default function App() {
       {tab === "sorgula" && (
         <section className="stack">
           {!user ? (
-            <Empty title="Plaka sorgusu için giriş yap" copy="Plaka, blok ve daire bilgileri yalnızca yetkili hesaplar için gösterilir." action="Hesaba geç" onAction={() => setTab("hesap")} />
+            <Empty title="Plaka sorgusu için giriş yap" copy="Sürücü adı, plaka ve varsa konum bilgileri yalnızca yetkili hesaplara gösterilir." action="Hesaba geç" onAction={() => setTab("hesap")} />
           ) : (
             <>
           <div className="ring-wrap">
@@ -215,8 +224,9 @@ export default function App() {
             />
           </label>
           <div className="metrics">
-            <Metric label="Blok" value={result?.exact?.[0]?.blok || hit?.blok || "—"} />
-            <Metric label="Daire" value={result?.exact?.[0]?.daire || hit?.daire || "—"} />
+            {hit?.isim ? <Metric label="Sürücü" value={hit.isim} /> : null}
+            {hit?.blok ? <Metric label="Blok" value={hit.blok} /> : null}
+            {hit?.daire ? <Metric label="Daire" value={hit.daire} /> : null}
             <Metric label="Durum" value={result?.exact?.length ? "Tam" : result?.similar?.length ? "Yakın" : query ? "Yok" : "Hazır"} />
           </div>
           <section className="install-guide" aria-labelledby="install-title">
@@ -251,7 +261,7 @@ export default function App() {
               {result.similar.map((row) => (
                 <li key={row.id} onClick={() => setQuery(row.plaka)}>
                   <b>{formatPlate(row.plaka)}</b>
-                  <span>{row.blok} · daire {row.daire}</span>
+                    <span>{plateDetails(row)}</span>
                 </li>
               ))}
             </ul>
@@ -271,6 +281,8 @@ export default function App() {
                 <div className="admin-tools">
                   <form className="card-form" onSubmit={addPlate}>
                     <h2>Yeni plaka ekle</h2>
+                    <label htmlFor="new-driver">Sürücü adı soyadı</label>
+                    <input id="new-driver" name="isim" required placeholder="Ad Soyad" value={add.isim} onChange={(e) => setAdd({ ...add, isim: e.target.value })} />
                     <label htmlFor="new-plate">Plaka</label>
                     <input id="new-plate" name="plaka" required placeholder="06 ABC 06" value={add.plaka} onChange={(e) => setAdd({ ...add, plaka: e.target.value })} />
                     <label htmlFor="new-block">Blok</label>
@@ -281,9 +293,10 @@ export default function App() {
                   </form>
                   <form className="card-form" onSubmit={importPlates}>
                     <h2>Excel veya CSV aktar</h2>
+                    <button className="secondary template-download" type="button" onClick={downloadTemplate}>Excel şablonunu indir</button>
                     <label htmlFor="plate-file">Plaka listesi</label>
                     <input id="plate-file" name="file" type="file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required />
-                    <p className="hint">İlk sayfada `plaka`, `blok`, `daire` sütunları bulunsun. CSV için aynı sırada başlıksız satırlar da kabul edilir. En fazla 5 MB ve 10.000 satır.</p>
+                    <p className="hint">Şablonda sürücü adı ve plaka zorunlu; blok ve daire isteğe bağlıdır. Bu aktarım uygulama hesabı değil, filo kaydı ekler. En fazla 5 MB ve 10.000 satır.</p>
                     <button className="primary" type="submit" disabled={uploadingPlates}>{uploadingPlates ? "Aktarılıyor..." : "Dosyayı aktar"}</button>
                   </form>
                 </div>
@@ -294,7 +307,7 @@ export default function App() {
                 {fleet.map((row) => (
                   <li key={row.id}>
                     <b>{formatPlate(row.plaka)}</b>
-                    <span>{row.blok} · daire {row.daire}</span>
+                    <span>{plateDetails(row)}</span>
                     {user.role === "admin" && (
                       <button
                         className="ghost"
@@ -370,6 +383,10 @@ function Metric({ label, value }) {
       <b>{value}</b>
     </article>
   );
+}
+
+function plateDetails(row) {
+  return [row.isim, row.blok, row.daire ? `daire ${row.daire}` : ""].filter(Boolean).join(" · ");
 }
 
 function Empty({ title, copy, action, onAction }) {
