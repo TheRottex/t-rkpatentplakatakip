@@ -1,7 +1,7 @@
 # TPPlaka
 
 <p align="center">
-	<img src="client/public/icon.svg" alt="TPPlaka uygulama simgesi" width="112" />
+	<img src="client/public/turkpatenetanalogo.jpg" alt="Türk Patent ve Marka Kurumu logosu" width="360" />
 </p>
 
 <p align="center">
@@ -14,7 +14,7 @@
 	<a href="#son-kullanıcı-rehberi">Son kullanıcı rehberi</a>
 </p>
 
-> **Kurumsal durum:** TPPlaka uygulama adı ve simgesini kullanır. Türk Patent ve Marka Kurumu ile resmî iş birliği, onay veya destek iddiasında bulunmaz; kurum logosu bu depoda kullanılmamıştır. Resmî bilgi ve izinli kurumsal görseller için [Türk Patent ve Marka Kurumu'nun sitesini](https://www.turkpatent.gov.tr/) ziyaret edin.
+> **Kurumsal durum:** Uygulama arayüzünde ve bu README'de kullanıcı tarafından sağlanan Türk Patent ve Marka Kurumu logosu kullanılır. Bu görsel tek başına kurumun uygulamayı onayladığı, desteklediği veya projeyle resmî iş birliği yaptığı anlamına gelmez. Kurumsal kimlik kullanım izni ayrıca doğrulanmalıdır. Resmî bilgi için [Türk Patent ve Marka Kurumu'nun sitesini](https://www.turkpatent.gov.tr/) ziyaret edin.
 
 ## Neler yapar?
 
@@ -138,4 +138,4 @@ Ana ekrana eklemek uygulamayı çevrimdışı yapmaz. Arama, giriş ve filo işl
 
 ## Proje ve kurum bilgisi
 
-TPPlaka ürün simgesi [`client/public/icon.svg`](client/public/icon.svg) dosyasıdır. Kurum logosu veya resmî iş birliği beyanı, yetki ve onay doğrulanana kadar eklenmemiştir.
+Ana uygulama logosu [`client/public/turkpatenetanalogo.jpg`](client/public/turkpatenetanalogo.jpg) dosyasıdır. Kare ana ekran/PWA simgesi [`client/public/icon.svg`](client/public/icon.svg) olarak ayrı tutulur; yatay kurum logosu kare simgeye kırpılmaz.
