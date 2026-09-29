@@ -161,11 +161,11 @@ test("manual plate entry still requires a name, block, and unit", () => {
     const store = createStore(dir);
     assert.throws(
       () => store.addPlate({ plaka: "06ABC06", blok: "A1", daire: "2" }),
-      /İsim, plaka, blok ve daire alanlarının tümü gereklidir/,
+      /İsim ve plaka gereklidir; blok veya daire varsa ikisini de doldurun\./,
     );
     assert.throws(
       () => store.addPlate({ isim: "Örnek Sürücü", plaka: "06ABC06", blok: "A1", daire: "" }),
-      /İsim, plaka, blok ve daire alanlarının tümü gereklidir/,
+      /İsim ve plaka gereklidir; blok veya daire varsa ikisini de doldurun\./,
     );
     assert.equal(store.listPlates().length, 0);
   } finally {
