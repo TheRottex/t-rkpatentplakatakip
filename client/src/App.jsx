@@ -76,6 +76,8 @@ export default function App() {
     return 0.22;
   }, [query, result]);
 
+  async function continueAsGuest() { setNotice(""); try { const payload = await api.guest(); setSession(payload.token); setUser(payload.user); haptic(20); setNotice(""); setTab("sorgula"); } catch (error) { console.error("Misafir girişi başarısız:", error); setNotice(error.message); } }
+
   async function submitAuth(event) {
     event.preventDefault();
     setNotice("");
@@ -364,6 +366,7 @@ export default function App() {
               <input type="email" required placeholder="E-posta" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
               <input type="password" required minLength={8} placeholder="Parola (en az 8)" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
               <button className="primary" type="submit">{authMode === "register" ? "Hesap aç" : "Giriş yap"}</button>
+              <button className="secondary" type="button" onClick={continueAsGuest}>Misafir olarak devam et</button>
               <p className="hint">Vortex bağlantısı yapılandırılmışsa hesap orada doğrulanır; bağlantı kapalıysa yerel hesap kullanılır. Yeni hesaplar normal kullanıcı yetkisindedir; yönetici yetkisi sunucudan verilir.</p>
             </form>
           )}

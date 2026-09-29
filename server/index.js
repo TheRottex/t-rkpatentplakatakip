@@ -74,6 +74,7 @@ app.post("/api/auth/register", async (request, response) => {
   }
 });
 
+app.post("/api/auth/guest", (_request, response) => response.json(auth.guest()));
 app.post("/api/auth/login", async (request, response) => {
   try {
     response.json(await auth.login(request.body || {}));

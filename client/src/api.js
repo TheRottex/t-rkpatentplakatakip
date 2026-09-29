@@ -25,6 +25,7 @@ export const api = {
   health: () => request("/api/health"),
   search: (q) => request(`/api/plates/search?q=${encodeURIComponent(q)}`),
   me: () => request("/api/me"),
+  guest: () => request("/api/auth/guest", { method: "POST" }),
   login: (body) => request("/api/auth/login", { method: "POST", body }),
   register: (body) => request("/api/auth/register", { method: "POST", body }),
   plates: () => request("/api/plates"),
