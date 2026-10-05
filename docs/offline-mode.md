@@ -30,7 +30,7 @@ systemctl is-active tpplaka
 curl --fail --show-error http://127.0.0.1:4400/api/health
 ```
 
-Kapatmak için satırı `VITE_OFFLINE_ENABLED=false` yapıp build ve restart adımlarını tekrarlayın. Ayar build sırasında arayüze gömülür; `.env` değerini tek başına değiştirmek çalışan arayüzü değiştirmez. `vite.config.js`, proje kökündeki `.env` dosyasını okur. Yalnızca `VITE_` değişkenleri istemci paketine aktarılır; JWT/Vortex sırlarını bu önekle adlandırmayın.
+Kapatmak için satırı `VITE_OFFLINE_ENABLED=false` yapıp build ve restart adımlarını tekrarlayın. Güncel arayüz cihazda açılınca önceki çevrimdışı kayıt cache'ini siler. Bu değer build sırasında arayüze gömülür; `.env` değerini tek başına değiştirmek çalışan arayüzü değiştirmez. `vite.config.js`, proje kökündeki `.env` dosyasını okur. Yalnızca `VITE_` değişkenleri istemci paketine aktarılır; JWT/Vortex sırlarını bu önekle adlandırmayın.
 
 Yeni kod gerekiyorsa build öncesi sunucuda `git pull --ff-only` kullanın. Gerçek kişi/plaka verisi içeren `.env`, JSON ve CSV dosyalarını GitHub'a göndermeyin.
 
