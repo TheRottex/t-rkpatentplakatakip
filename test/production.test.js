@@ -6,8 +6,45 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { createStore } from "../server/db.js";
+import { createAuth } from "../server/auth.js";
 import { createPlateTemplate, parsePlateUpload } from "../server/import.js";
 import { createVortexClient } from "../server/vortex.js";
+import jwt from "jsonwebtoken";
+import { searchCachedPlates } from "../client/src/api.js";
+
+test("offline plate search normalizes exact and partial matches", () => {
+  const plates = [
+    { id: "one", plaka: "06 ABC 06", isim: "Örnek Sürücü" },
+    { id: "two", plaka: "34 XYZ 34", isim: "Başka Sürücü" },
+  ];
+  assert.equal(searchCachedPlates(plates, "06ABC06").exact[0].id, "one");
+  assert.equal(searchCachedPlates(plates, "xyz").similar[0].id, "two");
+});
+
+test("legacy guest tokens cannot access authenticated data", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "tpplaka-"));
+  const jwtSecret = "test-secret-that-is-long-enough-for-a-test";
+  try {
+    const auth = createAuth({ store: createStore(dir), vortex: {}, jwtSecret });
+    const token = jwt.sign({ sub: "guest", role: "guest" }, jwtSecret);
+    let statusCode;
+    let errorPayload;
+    let authenticated = false;
+    auth.requireUser(
+      { headers: { authorization: `Bearer ${token}` } },
+      {
+        status(code) { statusCode = code; return this; },
+        json(payload) { errorPayload = payload; },
+      },
+      () => { authenticated = true; },
+    );
+    assert.equal(authenticated, false);
+    assert.equal(statusCode, 401);
+    assert.equal(errorPayload.error, "Oturum geçersiz.");
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
 
 test("ordinary users are members, never automatic administrators", () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "tpplaka-"));
