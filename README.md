@@ -41,7 +41,7 @@ flowchart LR
 - `server/auth.js` ve `server/vortex.js`: Yerel parola/JWT akışı ile timeout korumalı Vortex hesap bağlantısı.
 - `POST /api/plates/import`: Yönetici yetkisiyle 5 MB'a ve 10.000 satıra kadar Excel/CSV aktarımı; yinelenen plakalar atlanıp sonuçta sayılır.
 - `server/bootstrap-admin.js`: İlk yönetici hesabını sunucu ortamında bir kez oluşturur. Uygulama içinden kayıt olan kullanıcılar `member` olur.
-- `client/public/sw.js`: Arayüz kaynaklarını önbelleğe alır. Sorgular, hesap ve filo işlemleri için sunucu bağlantısı gerekir.
+- `client/public/sw.js`: Arayüz kaynaklarını önbelleğe alır ve uygulama kabuğunu güncel tutar. İsteğe bağlı çevrimdışı kayıt eşitlemesi `VITE_OFFLINE_ENABLED` ile açılır; ayrıntılar için [çevrimdışı kullanım rehberine](docs/offline-mode.md) bakın.
 
 ## Kurulum
 
@@ -144,7 +144,7 @@ Uygulamayı yöneticinizin paylaştığı HTTPS adresinden açın. Plaka sorgusu
 3. Eşleşen plakanın blok ve daire bilgisini kontrol edin. Benzer kayıt varsa listeden doğru olanı seçin.
 4. Filo listesini görmek için **Filo** sekmesini açın. Kayıt ekleme/silme yalnızca yönetici yetkisine açıktır; erişim gerekiyorsa site yöneticisine başvurun.
 
-Ana ekrana eklemek uygulamayı çevrimdışı yapmaz. Arama, giriş ve filo işlemleri internet ve çalışan uygulama sunucusu gerektirir. Kullanıcı adımları için ayrıca [detaylı kullanım kılavuzuna](Türk%20Paten%20Araba%20Takip%20Uygulamsı/README.md) bakın.
+Ana ekrana eklemek tek başına kayıtları çevrimdışı yapmaz. Yapılandırma açıksa kullanıcı önce aynı cihazda online giriş yapıp verileri eşitlemelidir; sonrasında arama ve filo listesi salt okunur çevrimdışı kullanılabilir. Kullanıcı adımları için [çevrimdışı kullanım rehberine](docs/offline-mode.md) ve [detaylı kullanım kılavuzuna](Türk%20Paten%20Araba%20Takip%20Uygulamsı/README.md) bakın.
 
 ## Güvenlik ve veri
 
