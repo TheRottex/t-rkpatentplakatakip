@@ -1,7 +1,7 @@
 const TOKEN_KEY = "bloktakip_token";
 const OFFLINE_PLATES_KEY = "tpplaka_offline_plates_v1";
 const OFFLINE_USER_KEY = "tpplaka_offline_user_v1";
-const OFFLINE_ENABLED = import.meta.env?.VITE_OFFLINE_ENABLED === "true";
+const OFFLINE_ENABLED = typeof import.meta.env !== "undefined" && import.meta.env.VITE_OFFLINE_ENABLED === "true";
 
 export function isOfflineEnabled() {
   return OFFLINE_ENABLED;
