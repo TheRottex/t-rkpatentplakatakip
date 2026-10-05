@@ -80,11 +80,8 @@ export function createAuth({ store, vortex, jwtSecret }) {
     throw Object.assign(new Error("E-posta veya parola hatalı."), { status: 401 });
   }
 
-  function guest() { const token = jwt.sign({ sub: "guest", email: null, role: "guest", vortexId: null }, jwtSecret, { expiresIn: "24h" }); return { token, user: { id: "guest", email: null, displayName: "Misafir", role: "guest", vortexLinked: false }, via: "guest" }; }
-
   function requireUser(request, response, next) {
     const payload = readToken(request);
-    if (payload?.sub === "guest" && payload?.role === "guest") { request.user = { id: "guest", email: null, displayName: "Misafir", role: "guest", vortexId: null }; return next(); }
     if (!payload) return response.status(401).json({ error: "Oturum gerekli." });
     const user = store.findUserById(payload.sub);
     if (!user) return response.status(401).json({ error: "Oturum geçersiz." });
@@ -99,7 +96,7 @@ export function createAuth({ store, vortex, jwtSecret }) {
     });
   }
 
-  return { register, login, guest, requireUser, requireAdmin };
+  return { register, login, requireUser, requireAdmin };
 }
 
 function publicUser(user) {
