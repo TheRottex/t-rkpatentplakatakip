@@ -74,7 +74,6 @@ app.post("/api/auth/register", async (request, response) => {
   }
 });
 
-app.post("/api/auth/guest", (_request, response) => response.json(auth.guest()));
 app.post("/api/auth/login", async (request, response) => {
   try {
     response.json(await auth.login(request.body || {}));
@@ -148,7 +147,11 @@ app.use((error, _request, response, next) => {
 });
 
 const dist = path.join(root, "dist");
-app.use(express.static(dist));
+app.use(express.static(dist, {
+  setHeaders(response, filePath) {
+    if (path.basename(filePath) === "sw.js") response.setHeader("Cache-Control", "no-store");
+  },
+}));
 app.get("*", (request, response, next) => {
   if (request.path.startsWith("/api")) return next();
   response.sendFile(path.join(dist, "index.html"), (error) => (error ? next() : undefined));
