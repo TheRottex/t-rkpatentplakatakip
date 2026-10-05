@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { api, getToken, setSession } from "./api.js";
+import { api, clearOfflineData, getOfflineSnapshot, getOfflineUser, getToken, isOfflineEnabled, saveOfflineUser, setSession } from "./api.js";
 
 const SHOW_LOCATION_FIELDS = 0;
 const ONBOARD_KEY = "bloktakip_onboarded";
+const OFFLINE_ENABLED = isOfflineEnabled();
 
 function haptic(ms = 12) {
   if (navigator.vibrate) navigator.vibrate(ms);
@@ -39,9 +40,59 @@ export default function App() {
   const [uploadingPlates, setUploadingPlates] = useState(false);
 
   useEffect(() => {
-    api.health().then(setHealth).catch(() => setHealth(null));
-    if (getToken()) api.me().then(setUser).catch(() => setSession(null));
+    let cancelled = false;
+    api.health().then(setHealth).catch(() => {
+      const cached = OFFLINE_ENABLED ? getOfflineSnapshot() : null;
+      setHealth(cached ? { stats: cached.stats || { uniquePlates: cached.items.length } } : null);
+    });
+    const token = getToken();
+    const snapshot = OFFLINE_ENABLED ? getOfflineSnapshot() : null;
+    const cachedUser = OFFLINE_ENABLED ? getOfflineUser() : null;
+
+    if (token && snapshot?.items?.length && cachedUser) {
+      setUser({ ...cachedUser, offline: true });
+      setHealth({ stats: snapshot.stats || { uniquePlates: snapshot.items.length } });
+      setNotice(`${snapshot.items.length} kayıt bu cihazda çevrimdışı kullanım için hazır.`);
+    }
+
+    if (token) {
+      api.me().then((profile) => {
+        if (cancelled) return;
+        saveOfflineUser(profile);
+        setUser(profile);
+      }).catch(() => {
+        if (cancelled) return;
+        if (!OFFLINE_ENABLED || !snapshot?.items?.length || !cachedUser) {
+          setSession(null);
+          setUser(null);
+        }
+      });
+    }
+
+    return () => { cancelled = true; };
   }, []);
+
+  useEffect(() => {
+    if (!OFFLINE_ENABLED || !user || user.offline) return;
+    api.plates().then((payload) => {
+      setNotice(`${payload.items.length} kayıt çevrimdışı kullanım için eşitlendi.`);
+    }).catch((error) => {
+      if (navigator.onLine) setNotice(`Çevrimdışı veri eşitlenemedi: ${error.message}`);
+    });
+  }, [user]);
+
+  useEffect(() => {
+    if (!user?.offline) return;
+    const reconnect = () => {
+      api.me().then((profile) => {
+        saveOfflineUser(profile);
+        setUser(profile);
+        return api.plates();
+      }).catch(() => {});
+    };
+    window.addEventListener("online", reconnect);
+    return () => window.removeEventListener("online", reconnect);
+  }, [user]);
 
   useEffect(() => {
     if (!user) {
@@ -76,14 +127,13 @@ export default function App() {
     return 0.22;
   }, [query, result]);
 
-  async function continueAsGuest() { setNotice(""); try { const payload = await api.guest(); setSession(payload.token); setUser(payload.user); haptic(20); setNotice(""); setTab("sorgula"); } catch (error) { console.error("Misafir girişi başarısız:", error); setNotice(error.message); } }
-
   async function submitAuth(event) {
     event.preventDefault();
     setNotice("");
     try {
       const payload = authMode === "register" ? await api.register(form) : await api.login(form);
       setSession(payload.token);
+      saveOfflineUser(payload.user);
       setUser(payload.user);
       haptic(20);
       setNotice(payload.via === "vortex" ? "Vortex hesabı bağlandı." : "Hesap hazır.");
@@ -257,14 +307,14 @@ export default function App() {
                 <li><b>Ana Ekrana Ekle</b> seçeneğini seçip <b>Ekle</b> düğmesine dokun.</li>
               </ol>
             )}
-            <p className="install-note">Kurulum için uygulama adresi güvenli HTTPS bağlantısı olmalı. Bu işlem uygulamayı mağazadan indirmez; ana ekrana ekler. Plaka araması için sunucuya internet bağlantısı gerekir.</p>
+            <p className="install-note">Kurulum için uygulama adresi güvenli HTTPS bağlantısı olmalı. Bu işlem uygulamayı mağazadan indirmez; ana ekrana ekler. {OFFLINE_ENABLED ? "Bir kez internet bağlantısıyla giriş yapıp veri eşitlendikten sonra arama çevrimdışı da çalışır." : "Plaka araması için sunucuya internet bağlantısı gerekir."}</p>
           </section>
           {result?.similar?.length ? (
             <ul className="list">
               {result.similar.map((row) => (
                 <li key={row.id} onClick={() => setQuery(row.plaka)}>
                   <b>{formatPlate(row.plaka)}</b>
-                    <span>{plateDetails(row)}</span>
+                  <span>{plateDetails(row)}</span>
                 </li>
               ))}
             </ul>
@@ -280,7 +330,7 @@ export default function App() {
             <Empty title="Filoyu görmek için giriş yap" copy="Filo kayıtları yalnızca yetkili hesaplara gösterilir." action="Hesaba geç" onAction={() => setTab("hesap")} />
           ) : (
             <>
-              {user.role === "admin" ? (
+              {user.role === "admin" && !user.offline ? (
                 <div className="admin-tools">
                   <form className="card-form" onSubmit={addPlate}>
                     <h2>Yeni plaka ekle</h2>
@@ -305,6 +355,8 @@ export default function App() {
                     <button className="primary" type="submit" disabled={uploadingPlates}>{uploadingPlates ? "Aktarılıyor..." : "Dosyayı aktar"}</button>
                   </form>
                 </div>
+              ) : user.offline ? (
+                <p className="hint">Çevrimdışı kullanım salt okunurdur. Plaka ekleme, silme ve aktarım için internet bağlantısı gerekir.</p>
               ) : (
                 <p className="hint">Yeni plaka ekleme ve dosyadan toplu aktarım yönetici yetkisi gerektirir. Yetki için site yöneticisine başvurun.</p>
               )}
@@ -313,7 +365,7 @@ export default function App() {
                   <li key={row.id}>
                     <b>{formatPlate(row.plaka)}</b>
                     <span>{plateDetails(row)}</span>
-                    {user.role === "admin" && (
+                    {user.role === "admin" && !user.offline && (
                       <button
                         className="ghost"
                         onClick={async () => {
@@ -339,12 +391,14 @@ export default function App() {
               <div className="avatar">{(user.displayName || user.email).slice(0, 1).toUpperCase()}</div>
               <h2>{user.displayName || user.email}</h2>
               <p>{user.email}</p>
-              <p className="pill">{user.vortexLinked ? "Vortex bağlı" : "Yerel hesap"} · {user.role}</p>
+              <p className="pill">{user.offline ? "Çevrimdışı · salt okunur" : `${user.vortexLinked ? "Vortex bağlı" : "Yerel hesap"} · ${user.role}`}</p>
               <button
                 className="secondary"
                 onClick={() => {
                   setSession(null);
+                  clearOfflineData();
                   setUser(null);
+                  setFleet([]);
                 }}
               >
                 Çıkış yap
@@ -366,7 +420,6 @@ export default function App() {
               <input type="email" required placeholder="E-posta" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
               <input type="password" required minLength={8} placeholder="Parola (en az 8)" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
               <button className="primary" type="submit">{authMode === "register" ? "Hesap aç" : "Giriş yap"}</button>
-              <button className="secondary" type="button" onClick={continueAsGuest}>Misafir olarak devam et</button>
               <p className="hint">Vortex bağlantısı yapılandırılmışsa hesap orada doğrulanır; bağlantı kapalıysa yerel hesap kullanılır. Yeni hesaplar normal kullanıcı yetkisindedir; yönetici yetkisi sunucudan verilir.</p>
             </form>
           )}
