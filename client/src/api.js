@@ -30,19 +30,17 @@ export function saveOfflineUser(user) {
   if (!OFFLINE_ENABLED || !user) return;
   try {
     localStorage.setItem(OFFLINE_USER_KEY, JSON.stringify(user));
-  } catch {
-    // Offline fallback remains optional if browser storage is unavailable.
-  }
+  } catch {}
 }
 
 export function clearOfflineData() {
   try {
     localStorage.removeItem(OFFLINE_PLATES_KEY);
     localStorage.removeItem(OFFLINE_USER_KEY);
-  } catch {
-    // Storage may be unavailable in private browsing modes.
-  }
+  } catch {}
 }
+
+if (!OFFLINE_ENABLED && typeof window !== "undefined") clearOfflineData();
 
 function saveOfflineSnapshot(payload) {
   if (!OFFLINE_ENABLED || !Array.isArray(payload.items)) return;
