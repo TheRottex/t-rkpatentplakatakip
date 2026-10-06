@@ -1,46 +1,38 @@
-# Çevrimdışı Kullanım
+# Çevrimdışı ve Misafir Kullanımı
 
-TPPlaka varsayılan olarak çevrimiçi çalışır. İsteğe bağlı çevrimdışı arama, `VITE_OFFLINE_ENABLED` ayarıyla açılıp kapatılır. Bu özellik ayrı bir misafir hesabı oluşturmaz ve giriş ekranına ek bir düğme koymaz.
+Offline arama ile guest oturumları iki ayrı ayardır. Varsayılanları kapalıdır.
 
-## Çalışma şekli
+| `VITE_OFFLINE_ENABLED` | `VITE_ALLOW_GUEST_SESSIONS` | Davranış |
+| --- | --- | --- |
+| `false` | `false` | Normal hesap girişi; uygulama online çalışır. |
+| `false` | `true` | Online kullanım ve **Misafir olarak devam et** düğmesi. |
+| `true` | `false` | Normal hesapla online giriş ve cihazda arka plan eşitleme; sonraki açılışlarda cache ile offline salt-okunur kullanım. |
+| `true` | `true` | İlk online açılışta otomatik guest oturumu ve arka plan eşitleme; sonraki açılışlarda cache ile offline salt-okunur kullanım. |
 
-- `VITE_OFFLINE_ENABLED=false`: Mevcut çevrimiçi çalışma. Sorgu, filo ve hesap işlemleri sunucu bağlantısı ister.
-- `VITE_OFFLINE_ENABLED=true`: Yetkili kullanıcı çevrimiçiyken giriş yaptığında erişebildiği plaka listesinin tamamı bu tarayıcıya eşitlenir. İnternet yoksa arama ve filo listesi son eşitlenen kayıtlarla salt okunur çalışır.
-- İlk eşitleme için cihazda internet varken normal hesapla giriş yapılmalıdır. Daha önce eşitlenmemiş yeni bir cihazda tamamen çevrimdışı ilk giriş mümkün değildir.
-- Eşitleme girişte, uygulama açılışında veya çevrimdışı kullanım sonrası yeniden bağlanınca yapılır. Admin değişiklikleri sonraki eşitlemede cihaza gelir.
-- Çevrimdışıyken plaka ekleme, silme, Excel/CSV aktarımı ve hesap işlemleri kullanılamaz.
-- Önbellek aynı cihazın tarayıcı/PWA depolamasına aittir; cihazlar arasında eşitlenmez. Çıkış bu cihazdaki çevrimdışı kayıtları siler.
-- Tarayıcı depolama baskısı, gizli mod veya kullanıcı temizliği veriyi silebilir. Çevrimdışı kopya kalıcı yedek değildir.
+## Sunucuda yapılandırma
 
-## Sunucuda açma veya kapama
-
-`/opt/tpplaka/app/.env` içindeki diğer ayarları ve sırları koruyun. Şu satırı ekleyin veya güncelleyin:
+Debian sunucusunda `/opt/tpplaka/app/.env` dosyasını açın. Diğer ayarları ve sırları koruyarak istediğiniz iki değeri ekleyin veya değiştirin:
 
 ```dotenv
 VITE_OFFLINE_ENABLED=true
+VITE_ALLOW_GUEST_SESSIONS=true
 ```
 
-Ardından uygulama dizininde build alıp servisi yeniden başlatın:
+Ardından proje kökünde:
 
 ```bash
 cd /opt/tpplaka/app
+git pull --ff-only https://github.com/TheRottex/t-rkpatentplakatakip.git main
 npm run build
 sudo systemctl restart tpplaka
 systemctl is-active tpplaka
 curl --fail --show-error http://127.0.0.1:4400/api/health
 ```
 
-Kapatmak için satırı `VITE_OFFLINE_ENABLED=false` yapıp build ve restart adımlarını tekrarlayın. Güncel arayüz cihazda açılınca önceki çevrimdışı kayıt cache'ini siler. Bu değer build sırasında arayüze gömülür; `.env` değerini tek başına değiştirmek çalışan arayüzü değiştirmez. `vite.config.js`, proje kökündeki `.env` dosyasını okur. Yalnızca `VITE_` değişkenleri istemci paketine aktarılır; JWT/Vortex sırlarını bu önekle adlandırmayın.
-
-Yeni kod gerekiyorsa build öncesi sunucuda `git pull --ff-only` kullanın. Gerçek kişi/plaka verisi içeren `.env`, JSON ve CSV dosyalarını GitHub'a göndermeyin.
+Bu değerler Vite build sırasında istemciye gömülür; `.env` değişikliğinin etkili olması için yeniden build ve servis restart gerekir. Guest izni açık olduğunda HTTPS adresine erişebilen herkes tüm plaka/sürücü listesini okuyabilir. Misafirler ekleme, silme veya dosya aktarımı yapamaz. Liste gizli kalmalıysa `VITE_ALLOW_GUEST_SESSIONS=false` bırakın.
 
 ## İlk eşitleme
 
-1. `VITE_OFFLINE_ENABLED=true` ile build alın ve servisi yeniden başlatın.
-2. Kullanıcının çevrimdışı kullanacağı aynı tarayıcıyı veya ana ekrana eklenen PWA'yı internet varken açın.
-3. Normal yetkili hesapla giriş yapın. Eşitleme bildirimi görünce cihaz hazırdır.
-4. Sonrasında internet olmadan uygulamayı açıp plaka arayabilirsiniz. Çıkış yapılırsa cihazdaki çevrimdışı kopya da silinir.
+Offline modunda ilk eşitleme için cihaz internet bağlantısı ister. İki ayar da açıksa uygulama ilk online açılışta guest oturumu açıp listeyi otomatik eşitler. Guest kapalıysa yetkili hesapla bir kez giriş yapılmalıdır. Eşitlemeden sonra aynı tarayıcı/PWA offline arama ve filo listesini salt okunur kullanabilir. Çıkış cihazdaki offline kopyayı siler.
 
-## Veri güvenliği
-
-Çevrimdışı arama için sürücü adı, plaka ve varsa konum bilgileri tarayıcı yerel depolamasında tutulur; uygulama bu depolamayı şifrelemez. Özelliği yalnızca erişimi kontrol edilen, ekran kilitli cihazlarda açın. Paylaşılan cihazlarda kullanmayın; cihaz kaybolursa son eşitlenen verinin açığa çıkabileceğini varsayın.
+Sürücü adı, plaka ve varsa konum bilgileri cihazdaki tarayıcı depolamasında şifrelenmeden tutulur. Yalnızca güvenilir, ekran kilitli cihazlarda kullanın; offline cache kalıcı yedek değildir.
