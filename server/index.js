@@ -59,12 +59,7 @@ app.use("/api/auth", rateLimit({ limit: 10, windowMs: 60_000 }));
 app.use("/api", rateLimit({ limit: 120, windowMs: 60_000 }));
 
 app.get("/api/health", (_request, response) => {
-    response.json({
-          ok: true,
-          name: "TPPlaka",
-          vortex: vortex.enabled,
-          stats: store.stats(),
-    });
+    response.json({ ok: true, name: "TPPlaka", vortex: vortex.enabled, stats: store.stats() });
 });
 
 app.post("/api/auth/register", async (request, response) => {
@@ -92,13 +87,7 @@ app.post("/api/auth/login", async (request, response) => {
 });
 
 app.get("/api/me", auth.requireUser, (request, response) => {
-    response.json({
-          id: request.user.id,
-          email: request.user.email,
-          displayName: request.user.displayName,
-          role: request.user.role,
-          vortexLinked: Boolean(request.user.vortexId),
-    });
+    response.json({ id: request.user.id, email: request.user.email, displayName: request.user.displayName, role: request.user.role, vortexLinked: Boolean(request.user.vortexId) });
 });
 
 app.get("/api/plates/search", auth.requireUser, (request, response) => {
@@ -146,9 +135,7 @@ app.delete("/api/plates/:id", auth.requireAdmin, (request, response) => {
 app.use((error, _request, response, next) => {
     if (error instanceof multer.MulterError) {
           const status = error.code === "LIMIT_FILE_SIZE" ? 413 : 400;
-          const message = error.code === "LIMIT_FILE_SIZE"
-            ? "Dosya boyutu en fazla 5 MB olabilir."
-                  : "Yalnızca bir CSV veya Excel dosyası yükleyebilirsiniz.";
+          const message = error.code === "LIMIT_FILE_SIZE" ? "Dosya boyutu en fazla 5 MB olabilir." : "Yalnızca bir CSV veya Excel dosyası yükleyebilirsiniz.";
           return response.status(status).json({ error: message });
     }
     if (error.status && error.status < 500) return response.status(error.status).json({ error: error.message });
@@ -186,12 +173,7 @@ function corsOrigin(origins) {
 }
 
 function securityHeaders(_request, response, next) {
-    response.set({
-          "X-Content-Type-Options": "nosniff",
-          "X-Frame-Options": "DENY",
-          "Referrer-Policy": "strict-origin-when-cross-origin",
-          "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
-    });
+    response.set({ "X-Content-Type-Options": "nosniff", "X-Frame-Options": "DENY", "Referrer-Policy": "strict-origin-when-cross-origin", "Permissions-Policy": "camera=(), microphone=(), geolocation=()" });
     next();
 }
 
@@ -205,9 +187,7 @@ function rateLimit({ limit, windowMs }) {
           active.count += 1;
           hits.set(id, active);
           if (active.count > limit) return response.status(429).json({ error: "Çok fazla istek. Lütfen kısa süre sonra tekrar deneyin." });
-          if (hits.size > 10_000) {
-                  for (const [staleId, stale] of hits) if (stale.until <= now) hits.delete(staleId);
-          }
+          if (hits.size > 10_000) for (const [staleId, stale] of hits) if (stale.until <= now) hits.delete(staleId);
           next();
     };
 }
