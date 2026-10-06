@@ -1,8 +1,24 @@
-const CACHE = "tpplaka-v4";
+const CACHE = "tpplaka-v5";
 const ASSETS = ["/", "/manifest.json", "/turkpatenetanalogo.jpg"];
 
+async function cacheAppShell() {
+  const cache = await caches.open(CACHE);
+  await cache.addAll(ASSETS);
+  const response = await fetch(new Request("/", { cache: "no-cache" }));
+  if (!response.ok) throw new Error("Uygulama kabuğu alınamadı.");
+  const html = await response.clone().text();
+  await cache.put("/", response.clone());
+  const assetPaths = Array.from(html.matchAll(/(?:src|href)="([^"]*\/assets\/[^\"]+)"/g), (match) => match[1]);
+  await Promise.all(assetPaths.map(async (assetPath) => {
+    try {
+      const asset = await fetch(new Request(new URL(assetPath, self.location.origin), { cache: "no-cache" }));
+      if (asset.ok) await cache.put(assetPath, asset);
+    } catch {}
+  }));
+}
+
 self.addEventListener("install", (event) => {
-  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(ASSETS)).then(() => self.skipWaiting()));
+  event.waitUntil(cacheAppShell().then(() => self.skipWaiting()));
 });
 
 self.addEventListener("activate", (event) => {
