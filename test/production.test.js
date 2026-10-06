@@ -21,26 +21,45 @@ test("offline plate search normalizes exact and partial matches", () => {
   assert.equal(searchCachedPlates(plates, "xyz").similar[0].id, "two");
 });
 
-test("legacy guest tokens cannot access authenticated data", () => {
+test("guest sessions are disabled by default and reject legacy tokens", () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "tpplaka-"));
   const jwtSecret = "test-secret-that-is-long-enough-for-a-test";
   try {
     const auth = createAuth({ store: createStore(dir), vortex: {}, jwtSecret });
+    assert.throws(() => auth.guest(), /Misafir oturumları kapalı\./);
     const token = jwt.sign({ sub: "guest", role: "guest" }, jwtSecret);
     let statusCode;
-    let errorPayload;
-    let authenticated = false;
     auth.requireUser(
       { headers: { authorization: `Bearer ${token}` } },
-      {
-        status(code) { statusCode = code; return this; },
-        json(payload) { errorPayload = payload; },
-      },
-      () => { authenticated = true; },
+      { status(code) { statusCode = code; return this; }, json() {} },
+      () => { throw new Error("A guest token was accepted while guest mode was disabled."); },
     );
-    assert.equal(authenticated, false);
     assert.equal(statusCode, 401);
-    assert.equal(errorPayload.error, "Oturum geçersiz.");
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("configured guest sessions can read data but cannot administer", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "tpplaka-"));
+  const jwtSecret = "test-secret-that-is-long-enough-for-a-test";
+  try {
+    const auth = createAuth({ store: createStore(dir), vortex: {}, jwtSecret, allowGuestSessions: true });
+    const session = auth.guest();
+    let guestUser;
+    auth.requireUser(
+      { headers: { authorization: `Bearer ${session.token}` } },
+      { status(code) { return { json() { return code; } }; } },
+      () => { guestUser = "guest"; },
+    );
+    assert.equal(guestUser, "guest");
+    let statusCode;
+    auth.requireAdmin(
+      { headers: { authorization: `Bearer ${session.token}` } },
+      { status(code) { statusCode = code; return this; }, json() {} },
+      () => { throw new Error("Guest session unexpectedly received admin access."); },
+    );
+    assert.equal(statusCode, 403);
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }
@@ -83,11 +102,7 @@ test("administrator role is assigned only when explicitly requested", () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "tpplaka-"));
   try {
     const store = createStore(dir);
-    const admin = store.createLocalUser({
-      email: "admin@example.com",
-      passwordHash: "hash",
-      role: "admin",
-    });
+    const admin = store.createLocalUser({ email: "admin@example.com", passwordHash: "hash", role: "admin" });
     assert.equal(admin.role, "admin");
     assert.equal(store.hasAdmins(), true);
   } finally {
@@ -96,10 +111,7 @@ test("administrator role is assigned only when explicitly requested", () => {
 });
 
 test("CSV upload reads headered, semicolon-delimited rows", async () => {
-  const rows = await parsePlateUpload({
-    originalname: "plates.csv",
-    buffer: Buffer.from("plaka;blok;daire\n06ABC06;C2/47;2\n", "utf8"),
-  });
+  const rows = await parsePlateUpload({ originalname: "plates.csv", buffer: Buffer.from("plaka;blok;daire\n06ABC06;C2/47;2\n", "utf8") });
   assert.deepEqual(rows, [{ isim: "", plaka: "06ABC06", blok: "C2/47", daire: "2" }]);
 });
 
@@ -143,12 +155,7 @@ test("Excel template has name and plate columns plus optional locations", async 
   const buffer = await createPlateTemplate();
   const workbook = new ExcelJS.Workbook();
   await workbook.xlsx.load(buffer);
-  assert.deepEqual(workbook.worksheets[0].getRow(1).values.slice(1), [
-    "SÜRÜCÜ AD SOYAD",
-    "PLAKA",
-    "BLOK",
-    "DAİRE",
-  ]);
+  assert.deepEqual(workbook.worksheets[0].getRow(1).values.slice(1), ["SÜRÜCÜ AD SOYAD", "PLAKA", "BLOK", "DAİRE"]);
 });
 
 test("upload rejects a row with only one optional location field", async () => {
@@ -157,10 +164,7 @@ test("upload rejects a row with only one optional location field", async () => {
   sheet.addRow(["SÜRÜCÜ AD SOYAD", "PLAKA", "BLOK", "DAİRE"]);
   sheet.addRow(["Örnek Sürücü", "06ABC06", "A1", ""]);
   const buffer = Buffer.from(await workbook.xlsx.writeBuffer());
-  await assert.rejects(
-    parsePlateUpload({ originalname: "plates.xlsx", buffer }),
-    /isim ve plaka gerekli; blok\/daire varsa ikisini de doldurun/i,
-  );
+  await assert.rejects(parsePlateUpload({ originalname: "plates.xlsx", buffer }), /isim ve plaka gerekli; blok\/daire varsa ikisini de doldurun/i);
 });
 
 test("named spreadsheet schema rejects a missing driver name", async () => {
@@ -172,10 +176,7 @@ test("named spreadsheet schema rejects a missing driver name", async () => {
   sheet.getCell("C2").value = "A1";
   sheet.getCell("D2").value = "2";
   const buffer = Buffer.from(await workbook.xlsx.writeBuffer());
-  await assert.rejects(
-    parsePlateUpload({ originalname: "plates.xlsx", buffer }),
-    /isim ve plaka gerekli; blok\/daire varsa ikisini de doldurun/i,
-  );
+  await assert.rejects(parsePlateUpload({ originalname: "plates.xlsx", buffer }), /isim ve plaka gerekli; blok\/daire varsa ikisini de doldurun/i);
 });
 
 test("named plates with no location are returned without block or unit values", () => {
@@ -196,14 +197,8 @@ test("manual plate entry still requires a name, block, and unit", () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "tpplaka-"));
   try {
     const store = createStore(dir);
-    assert.throws(
-      () => store.addPlate({ plaka: "06ABC06", blok: "A1", daire: "2" }),
-      /İsim ve plaka gereklidir; blok veya daire varsa ikisini de doldurun\./,
-    );
-    assert.throws(
-      () => store.addPlate({ isim: "Örnek Sürücü", plaka: "06ABC06", blok: "A1", daire: "" }),
-      /İsim ve plaka gereklidir; blok veya daire varsa ikisini de doldurun\./,
-    );
+    assert.throws(() => store.addPlate({ plaka: "06ABC06", blok: "A1", daire: "2" }), /İsim ve plaka gereklidir; blok veya daire varsa ikisini de doldurun\./);
+    assert.throws(() => store.addPlate({ isim: "Örnek Sürücü", plaka: "06ABC06", blok: "A1", daire: "" }), /İsim ve plaka gereklidir; blok veya daire varsa ikisini de doldurun\./);
     assert.equal(store.listPlates().length, 0);
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
